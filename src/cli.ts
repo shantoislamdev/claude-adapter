@@ -2,18 +2,17 @@
 // CLI entry point for claude-adapter
 import { Command } from 'commander';
 import inquirer from 'inquirer';
-import chalk from 'chalk';
 import { AdapterConfig } from './types/config';
 import {
     loadConfig,
     saveConfig,
-    configExists,
     updateClaudeJson,
     updateClaudeSettings,
     getClaudePaths,
     getConfigDir
 } from './utils/config';
 import { createServer, findAvailablePort } from './server';
+import { UI } from './utils/ui';
 
 const program = new Command();
 
@@ -26,61 +25,61 @@ program
     .option('-p, --port <port>', 'Port to run the proxy server on', '3080')
     .option('-r, --reconfigure', 'Force reconfiguration even if config exists')
     .action(async (options) => {
-        console.log(chalk.cyan.bold('\n🔌 Claude Adapter\n'));
-        console.log(chalk.gray('Convert Anthropic API requests to OpenAI format for Claude Code\n'));
+        UI.header('Claude Adapter', 'Convert Anthropic API requests to OpenAI format for Claude Code');
 
         try {
             // Step 1: Update ~/.claude.json for onboarding skip
-            console.log(chalk.yellow('📝 Setting up Claude Code onboarding...'));
+            UI.startSpinner('Setting up Claude Code onboarding...');
             updateClaudeJson();
             const paths = getClaudePaths();
-            console.log(chalk.green(`   ✓ Updated ${paths.claudeJson}`));
+            UI.stopSpinner(true, `Updated ${UI.dim(paths.claudeJson)}`);
 
             // Step 2: Load or create configuration
             let config = loadConfig();
 
             if (!config || options.reconfigure) {
-                console.log(chalk.yellow('\n⚙️  Configuration required\n'));
+                UI.log(''); // Spacing
+                UI.warning('Configuration required');
                 config = await promptForConfiguration();
                 saveConfig(config);
-                console.log(chalk.green(`\n   ✓ Configuration saved to ${getConfigDir()}/config.json`));
+                UI.success(`Configuration saved to ${UI.dim(`${getConfigDir()}/config.json`)}`);
             } else {
-                console.log(chalk.green(`\n✓ Using existing configuration from ${getConfigDir()}/config.json`));
-                console.log(chalk.gray(`   Base URL: ${config.baseUrl}`));
-                console.log(chalk.gray(`   Models: opus=${config.models.opus}, sonnet=${config.models.sonnet}, haiku=${config.models.haiku}`));
+                UI.info(`Using existing configuration from ${UI.dim(`${getConfigDir()}/config.json`)}`);
             }
 
             // Step 3: Find available port and start server
             const preferredPort = parseInt(options.port, 10) || 3080;
             const port = await findAvailablePort(preferredPort);
 
-            console.log(chalk.yellow('\n🚀 Starting proxy server...'));
-
+            UI.startSpinner('Starting proxy server...');
             const server = createServer(config);
             const proxyUrl = await server.start(port);
-
-            console.log(chalk.green(`   ✓ Proxy server running at ${chalk.bold(proxyUrl)}`));
+            UI.stopSpinner(true, `Proxy server running at ${UI.newUrl(proxyUrl)}`);
 
             // Step 4: Update Claude Code settings
-            console.log(chalk.yellow('\n📁 Updating Claude Code settings...'));
+            UI.startSpinner('Updating Claude Code settings...');
             updateClaudeSettings(proxyUrl, config.models);
-            console.log(chalk.green(`   ✓ Updated ${paths.claudeSettings}`));
+            UI.stopSpinner(true, `Updated ${UI.dim(paths.claudeSettings)}`);
 
             // Display final instructions
-            console.log(chalk.cyan.bold('\n✅ Setup complete!\n'));
-            console.log(chalk.white('Claude Code is now configured to use your OpenAI-compatible API.'));
-            console.log(chalk.white('You can now start Claude Code and it will route through this proxy.\n'));
-            console.log(chalk.gray('Press Ctrl+C to stop the proxy server.\n'));
+            UI.box('Setup Complete!', [
+                'Claude Code is now configured to use your OpenAI-compatible API.',
+                'You can now start Claude Code and it will route through this proxy.',
+                '',
+                'Press Ctrl+C to stop the proxy server.'
+            ]);
 
             // Keep the process running
             process.on('SIGINT', () => {
-                console.log(chalk.yellow('\n\n👋 Shutting down proxy server...'));
+                UI.log('');
+                UI.warning('Shutting down proxy server...');
                 server.stop();
                 process.exit(0);
             });
 
         } catch (error) {
-            console.error(chalk.red(`\n❌ Error: ${(error as Error).message}`));
+            UI.stopSpinner(false, 'An error occurred');
+            UI.error('Setup failed', error as Error);
             process.exit(1);
         }
     });
@@ -89,12 +88,15 @@ program
  * Prompt user for configuration
  */
 async function promptForConfiguration(): Promise<AdapterConfig> {
+    const prefix = UI.dim('?');
     const answers = await inquirer.prompt([
         {
             type: 'input',
             name: 'baseUrl',
+            prefix,
             message: 'Enter your OpenAI or OpenAI-compatible base URL:',
             default: 'https://api.openai.com/v1',
+            transformer: (input: string) => UI.highlight(input),
             validate: (input: string) => {
                 try {
                     new URL(input);
@@ -107,8 +109,10 @@ async function promptForConfiguration(): Promise<AdapterConfig> {
         {
             type: 'password',
             name: 'apiKey',
+            prefix,
             message: 'Enter your API key:',
             mask: '*',
+            transformer: (input: string) => UI.highlight('*'.repeat(input.length)),
             validate: (input: string) => {
                 if (!input || input.trim() === '') {
                     return 'API key is required';
@@ -119,7 +123,9 @@ async function promptForConfiguration(): Promise<AdapterConfig> {
         {
             type: 'input',
             name: 'opusModel',
+            prefix,
             message: 'Write the model name that you want to replace the Opus model with:',
+            transformer: (input: string) => UI.highlight(input),
             validate: (input: string) => {
                 if (!input || input.trim() === '') {
                     return 'Model name is required for Opus';
@@ -130,14 +136,18 @@ async function promptForConfiguration(): Promise<AdapterConfig> {
         {
             type: 'input',
             name: 'sonnetModel',
+            prefix,
             message: 'Write the model name that you want to replace the Sonnet model with (Press Enter to skip):',
             default: '',
+            transformer: (input: string) => UI.highlight(input),
         },
         {
             type: 'input',
             name: 'haikuModel',
+            prefix,
             message: 'Write the model name that you want to replace the Haiku model with (Press Enter to skip):',
             default: '',
+            transformer: (input: string) => UI.highlight(input),
         },
     ]);
 
