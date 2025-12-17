@@ -103,20 +103,20 @@ Configuration is stored in `~/.claude-adapter/config.json`:
   "baseUrl": "https://api.openai.com/v1",
   "apiKey": "sk-...",
   "models": {
-    "opus": "gpt-4-turbo",
-    "sonnet": "gpt-4-turbo", 
-    "haiku": "gpt-3.5-turbo"
+    "opus": "gpt-5.2-codex",
+    "sonnet": "gpt-5.2-codex",
+    "haiku": "gpt-5.2-mini"
   }
 }
 ```
 
 ### Model Mapping
 
-| Claude Model | Description  | Suggested OpenAI Model         |
-| ------------ | ------------ | ------------------------------ |
-| `opus`       | Most capable | `gpt-4-turbo`, `gpt-4o`        |
-| `sonnet`     | Balanced     | `gpt-4-turbo`, `gpt-4o-mini`   |
-| `haiku`      | Fast & light | `gpt-3.5-turbo`, `gpt-4o-mini` |
+| Claude Model | Description  | Suggested OpenAI Model               |
+| ------------ | ------------ | ------------------------------------ |
+| `opus`       | Most capable | `gpt-5.2-codex`, `gpt-5.2-codex-max` |
+| `sonnet`     | Balanced     | `gpt-5.2-codex`, `gpt-5.2-mini`      |
+| `haiku`      | Fast & light | `gpt-5.2-mini`, `gpt-5.2-nano`       |
 
 ---
 
@@ -131,9 +131,9 @@ const config: AdapterConfig = {
   baseUrl: 'https://api.openai.com/v1',
   apiKey: process.env.OPENAI_API_KEY!,
   models: {
-    opus: 'gpt-4-turbo',
-    sonnet: 'gpt-4-turbo',
-    haiku: 'gpt-3.5-turbo'
+    opus: 'gpt-5.2-codex',
+    sonnet: 'gpt-5.2-codex',
+    haiku: 'gpt-5.2-mini'
   }
 };
 
@@ -152,7 +152,7 @@ import {
 } from 'claude-adapter';
 
 // Convert Anthropic request to OpenAI format
-const openaiRequest = convertRequestToOpenAI(anthropicRequest, 'gpt-4');
+const openaiRequest = convertRequestToOpenAI(anthropicRequest, 'gpt-5.2-codex');
 
 // Convert OpenAI response to Anthropic format
 const anthropicResponse = convertResponseToAnthropic(openaiResponse, 'claude-3-sonnet');

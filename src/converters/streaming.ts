@@ -8,6 +8,33 @@ import {
 import { OpenAIStreamChunk, OpenAIStreamToolCall } from '../types/openai';
 import { generateToolUseId } from './tools';
 
+// Global counter and set for unique tool IDs within this process
+let toolIdCounter = 0;
+const usedToolIds = new Set<string>();
+
+function generateUniqueToolId(): string {
+    let id: string;
+    do {
+        toolIdCounter++;
+        const timestamp = Date.now().toString(36);
+        const counter = toolIdCounter.toString(36).padStart(4, '0');
+        const random = Math.random().toString(36).substring(2, 10);
+        id = `call_${timestamp}_${counter}_${random}`;
+    } while (usedToolIds.has(id));
+
+    usedToolIds.add(id);
+
+    // Clean up old IDs periodically to prevent memory leak (keep last 10000)
+    if (usedToolIds.size > 10000) {
+        const idsArray = Array.from(usedToolIds);
+        for (let i = 0; i < 5000; i++) {
+            usedToolIds.delete(idsArray[i]);
+        }
+    }
+
+    return id;
+}
+
 interface StreamingState {
     messageId: string;
     model: string;
@@ -130,8 +157,19 @@ function processToolCallDelta(
             state.contentBlockIndex++;
         }
 
+        // IMPORTANT: Use the original OpenAI tool ID to maintain consistency
+        // This ID must match when tool results are sent back
+        // If OpenAI doesn't provide an ID, generate a guaranteed unique one
+        let toolId: string;
+        if (toolCall.id && !usedToolIds.has(toolCall.id)) {
+            toolId = toolCall.id;
+            usedToolIds.add(toolId);
+        } else {
+            toolId = generateUniqueToolId();
+        }
+
         const newToolCall = {
-            id: toolCall.id || generateToolUseId(),
+            id: toolId,
             name: toolCall.function?.name || '',
             arguments: '',
         };
