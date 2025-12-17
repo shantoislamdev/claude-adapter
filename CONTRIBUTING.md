@@ -4,13 +4,25 @@ Thank you for your interest in contributing to Claude Adapter! This document pro
 
 ## Table of Contents
 
-- [Code of Conduct](#code-of-conduct)
-- [Getting Started](#getting-started)
-- [Development Setup](#development-setup)
-- [Making Changes](#making-changes)
-- [Testing](#testing)
-- [Pull Request Process](#pull-request-process)
-- [Style Guide](#style-guide)
+- [Contributing to Claude Adapter](#contributing-to-claude-adapter)
+  - [Table of Contents](#table-of-contents)
+  - [Code of Conduct](#code-of-conduct)
+  - [Getting Started](#getting-started)
+    - [Prerequisites](#prerequisites)
+    - [Development Setup](#development-setup)
+  - [Making Changes](#making-changes)
+    - [Project Structure](#project-structure)
+    - [Development Workflow](#development-workflow)
+  - [Testing](#testing)
+    - [Running Tests](#running-tests)
+    - [Writing Tests](#writing-tests)
+  - [Pull Request Process](#pull-request-process)
+    - [PR Checklist](#pr-checklist)
+  - [Style Guide](#style-guide)
+    - [TypeScript](#typescript)
+    - [Naming Conventions](#naming-conventions)
+    - [Code Formatting](#code-formatting)
+  - [Questions?](#questions)
 
 ---
 
@@ -66,7 +78,6 @@ claude-adapter/
 │   ├── server/             # Express proxy server
 │   └── utils/              # Utility functions
 ├── tests/                  # Test files
-├── docs/                   # Documentation
 └── package.json
 ```
 
