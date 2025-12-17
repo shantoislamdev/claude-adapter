@@ -5,6 +5,7 @@
 **Transform your OpenAI API into an Anthropic-compatible endpoint for Claude Code**
 
 [![npm version](https://img.shields.io/npm/v/claude-adapter.svg)](https://www.npmjs.com/package/claude-adapter)
+[![CI](https://github.com/shantoislamdev/claude-adapter/actions/workflows/ci.yml/badge.svg)](https://github.com/shantoislamdev/claude-adapter/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js Version](https://img.shields.io/node/v/claude-adapter.svg)](https://nodejs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)](https://www.typescriptlang.org/)
