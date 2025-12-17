@@ -155,7 +155,7 @@ import {
 const openaiRequest = convertRequestToOpenAI(anthropicRequest, 'gpt-5.2-codex');
 
 // Convert OpenAI response to Anthropic format
-const anthropicResponse = convertResponseToAnthropic(openaiResponse, 'claude-3-sonnet');
+const anthropicResponse = convertResponseToAnthropic(openaiResponse, 'claude-4.5-sonnet');
 ```
 
 See [API Documentation](./docs/API.md) for complete reference.
