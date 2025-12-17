@@ -20,11 +20,12 @@ export function createMessagesHandler(config: AdapterConfig) {
         try {
             const anthropicRequest = req.body as AnthropicMessageRequest;
 
-            // Determine target model based on requested model
-            const targetModel = getTargetModel(anthropicRequest.model, config);
+            // Pass through the model directly from the request
+            // Claude Code is already configured with the correct model via settings.json
+            const targetModel = anthropicRequest.model;
 
             // Log request for debugging
-            console.log(`[claude-adapter] Request for model: ${anthropicRequest.model} -> ${targetModel}`);
+            console.log(`[claude-adapter] Forwarding request for model: ${targetModel}`);
 
             // Convert request to OpenAI format
             const openaiRequest = convertRequestToOpenAI(anthropicRequest, targetModel);
@@ -40,22 +41,6 @@ export function createMessagesHandler(config: AdapterConfig) {
             handleError(error as Error, res);
         }
     };
-}
-
-/**
- * Determine the target OpenAI model based on the requested Anthropic model
- */
-function getTargetModel(requestedModel: string, config: AdapterConfig): string {
-    const modelLower = requestedModel.toLowerCase();
-
-    if (modelLower.includes('opus')) {
-        return config.models.opus;
-    } else if (modelLower.includes('haiku')) {
-        return config.models.haiku;
-    } else {
-        // Default to sonnet for sonnet models or any unrecognized model
-        return config.models.sonnet;
-    }
 }
 
 /**
