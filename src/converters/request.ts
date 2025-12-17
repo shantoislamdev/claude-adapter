@@ -36,6 +36,69 @@ export function convertRequestToOpenAI(
         });
     }
 
+    // Repair duplicate tool_use IDs in the conversation history
+    // This handles cases where previous buggy versions created history with duplicates
+    // We need to track the sequence of IDs to properly map results to uses
+    const toolUseIds = new Set<string>();
+    const idReplacements = new Map<string, string[]>();
+
+    // First pass: Deduplicate tool_use IDs and record the sequence
+    for (const msg of anthropicRequest.messages) {
+        if (typeof msg.content !== 'string' && Array.isArray(msg.content)) {
+            for (const block of msg.content) {
+                if (block.type === 'tool_use') {
+                    const toolUse = block as AnthropicToolUseBlock;
+                    const originalId = toolUse.id;
+
+                    let idToUse = originalId;
+
+                    // If we've seen this ID before, we must generate a new unique one
+                    if (toolUseIds.has(originalId)) {
+                        idToUse = `repaired_${Date.now().toString(36)}_${Math.random().toString(36).substr(2, 5)}`;
+                        console.log(`[claude-adapter] Repairing duplicate tool_use ID: ${originalId} -> ${idToUse}`);
+                        toolUse.id = idToUse;
+                    }
+
+                    toolUseIds.add(idToUse);
+
+                    // Track the sequence of IDs for this original ID
+                    if (!idReplacements.has(originalId)) {
+                        idReplacements.set(originalId, []);
+                    }
+                    idReplacements.get(originalId)!.push(idToUse);
+                }
+            }
+        }
+    }
+
+    // Second pass: Update tool_result IDs to match the repaired sequences
+    const resultConsumption = new Map<string, number>();
+
+    for (const msg of anthropicRequest.messages) {
+        if (typeof msg.content !== 'string' && Array.isArray(msg.content)) {
+            for (const block of msg.content) {
+                if (block.type === 'tool_result') {
+                    const toolResult = block as AnthropicToolResultBlock;
+                    const originalId = toolResult.tool_use_id;
+
+                    if (idReplacements.has(originalId)) {
+                        const replacements = idReplacements.get(originalId)!;
+                        const validIndex = resultConsumption.get(originalId) || 0;
+
+                        if (validIndex < replacements.length) {
+                            const newId = replacements[validIndex];
+                            if (newId !== originalId) {
+                                console.log(`[claude-adapter] Updating tool_result ID: ${originalId} -> ${newId}`);
+                                toolResult.tool_use_id = newId;
+                            }
+                            resultConsumption.set(originalId, validIndex + 1);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     // Convert messages
     for (const msg of anthropicRequest.messages) {
         const converted = convertMessage(msg);
