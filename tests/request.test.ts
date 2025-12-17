@@ -6,16 +6,16 @@ describe('Request Converter', () => {
     describe('convertRequestToOpenAI', () => {
         it('should convert a simple text message', () => {
             const anthropicRequest: AnthropicMessageRequest = {
-                model: 'claude-3-sonnet-20240229',
+                model: 'claude-4.5-sonnet',
                 max_tokens: 1024,
                 messages: [
                     { role: 'user', content: 'Hello, how are you?' }
                 ]
             };
 
-            const result = convertRequestToOpenAI(anthropicRequest, 'gpt-4');
+            const result = convertRequestToOpenAI(anthropicRequest, 'gpt-5.2-codex');
 
-            expect(result.model).toBe('gpt-4');
+            expect(result.model).toBe('gpt-5.2-codex');
             expect(result.max_tokens).toBe(1024);
             expect(result.messages).toHaveLength(1);
             expect(result.messages[0]).toEqual({
@@ -26,7 +26,7 @@ describe('Request Converter', () => {
 
         it('should convert system prompt to system message', () => {
             const anthropicRequest: AnthropicMessageRequest = {
-                model: 'claude-3-opus-20240229',
+                model: 'claude-4.5-opus',
                 max_tokens: 2048,
                 system: 'You are a helpful assistant.',
                 messages: [
@@ -34,7 +34,7 @@ describe('Request Converter', () => {
                 ]
             };
 
-            const result = convertRequestToOpenAI(anthropicRequest, 'gpt-4-turbo');
+            const result = convertRequestToOpenAI(anthropicRequest, 'gpt-5.2-codex');
 
             expect(result.messages).toHaveLength(2);
             expect(result.messages[0]).toEqual({
@@ -49,7 +49,7 @@ describe('Request Converter', () => {
 
         it('should convert multi-turn conversation', () => {
             const anthropicRequest: AnthropicMessageRequest = {
-                model: 'claude-3-haiku-20240307',
+                model: 'claude-4.5-haiku',
                 max_tokens: 512,
                 messages: [
                     { role: 'user', content: 'What is 2+2?' },
@@ -58,7 +58,7 @@ describe('Request Converter', () => {
                 ]
             };
 
-            const result = convertRequestToOpenAI(anthropicRequest, 'gpt-3.5-turbo');
+            const result = convertRequestToOpenAI(anthropicRequest, 'gpt-5.2-mini');
 
             expect(result.messages).toHaveLength(3);
             expect(result.messages[0].role).toBe('user');
@@ -68,7 +68,7 @@ describe('Request Converter', () => {
 
         it('should convert content blocks array in user message', () => {
             const anthropicRequest: AnthropicMessageRequest = {
-                model: 'claude-3-sonnet-20240229',
+                model: 'claude-4.5-sonnet',
                 max_tokens: 1024,
                 messages: [
                     {
@@ -81,7 +81,7 @@ describe('Request Converter', () => {
                 ]
             };
 
-            const result = convertRequestToOpenAI(anthropicRequest, 'gpt-4');
+            const result = convertRequestToOpenAI(anthropicRequest, 'gpt-5.2-codex');
 
             expect(result.messages).toHaveLength(1);
             // Should flatten or handle multiple text blocks
@@ -90,7 +90,7 @@ describe('Request Converter', () => {
 
         it('should include optional parameters when provided', () => {
             const anthropicRequest: AnthropicMessageRequest = {
-                model: 'claude-3-sonnet-20240229',
+                model: 'claude-4.5-sonnet',
                 max_tokens: 1024,
                 temperature: 0.7,
                 top_p: 0.9,
@@ -100,7 +100,7 @@ describe('Request Converter', () => {
                 ]
             };
 
-            const result = convertRequestToOpenAI(anthropicRequest, 'gpt-4');
+            const result = convertRequestToOpenAI(anthropicRequest, 'gpt-5.2-codex');
 
             expect(result.temperature).toBe(0.7);
             expect(result.top_p).toBe(0.9);
@@ -109,7 +109,7 @@ describe('Request Converter', () => {
 
         it('should handle stream parameter', () => {
             const anthropicRequest: AnthropicMessageRequest = {
-                model: 'claude-3-sonnet-20240229',
+                model: 'claude-4.5-sonnet',
                 max_tokens: 1024,
                 stream: true,
                 messages: [
@@ -117,7 +117,7 @@ describe('Request Converter', () => {
                 ]
             };
 
-            const result = convertRequestToOpenAI(anthropicRequest, 'gpt-4');
+            const result = convertRequestToOpenAI(anthropicRequest, 'gpt-5.2-codex');
 
             expect(result.stream).toBe(true);
         });

@@ -9,7 +9,7 @@ describe('Response Converter', () => {
                 id: 'chatcmpl-123',
                 object: 'chat.completion',
                 created: 1677652288,
-                model: 'gpt-4',
+                model: 'gpt-5.2-codex',
                 choices: [
                     {
                         index: 0,
@@ -27,12 +27,12 @@ describe('Response Converter', () => {
                 }
             };
 
-            const result = convertResponseToAnthropic(openaiResponse, 'claude-3-sonnet-20240229');
+            const result = convertResponseToAnthropic(openaiResponse, 'claude-4.5-sonnet');
 
             expect(result.id).toContain('msg_');
             expect(result.type).toBe('message');
             expect(result.role).toBe('assistant');
-            expect(result.model).toBe('claude-3-sonnet-20240229');
+            expect(result.model).toBe('claude-4.5-sonnet');
             expect(result.content).toHaveLength(1);
             expect(result.content[0]).toEqual({
                 type: 'text',
@@ -48,7 +48,7 @@ describe('Response Converter', () => {
                 id: 'chatcmpl-123',
                 object: 'chat.completion',
                 created: 1677652288,
-                model: 'gpt-4',
+                model: 'gpt-5.2-codex',
                 choices: [
                     {
                         index: 0,
@@ -69,7 +69,7 @@ describe('Response Converter', () => {
                 id: 'chatcmpl-456',
                 object: 'chat.completion',
                 created: 1677652288,
-                model: 'gpt-4',
+                model: 'gpt-5.2-codex',
                 choices: [
                     {
                         index: 0,
@@ -97,7 +97,7 @@ describe('Response Converter', () => {
                 }
             };
 
-            const result = convertResponseToAnthropic(openaiResponse, 'claude-3-opus-20240229');
+            const result = convertResponseToAnthropic(openaiResponse, 'claude-4.5-opus');
 
             expect(result.stop_reason).toBe('tool_use');
             expect(result.content).toHaveLength(1);
@@ -114,7 +114,7 @@ describe('Response Converter', () => {
                 id: 'chatcmpl-789',
                 object: 'chat.completion',
                 created: 1677652288,
-                model: 'gpt-4',
+                model: 'gpt-5.2-codex',
                 choices: [
                     {
                         index: 0,
@@ -138,7 +138,7 @@ describe('Response Converter', () => {
                 usage: { prompt_tokens: 30, completion_tokens: 25, total_tokens: 55 }
             };
 
-            const result = convertResponseToAnthropic(openaiResponse, 'claude-3-sonnet-20240229');
+            const result = convertResponseToAnthropic(openaiResponse, 'claude-4.5-sonnet');
 
             expect(result.content).toHaveLength(2);
             expect(result.content[0]).toEqual({
