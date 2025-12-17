@@ -89,7 +89,7 @@ npx claude-adapter
 
 | Option              | Description           | Default |
 | ------------------- | --------------------- | ------- |
-| `-p, --port <port>` | Port for proxy server | `8080`  |
+| `-p, --port <port>` | Port for proxy server | `3080`  |
 | `-r, --reconfigure` | Force reconfiguration | `false` |
 | `-V, --version`     | Display version       | —       |
 | `-h, --help`        | Display help          | —       |
@@ -138,9 +138,9 @@ const config: AdapterConfig = {
 };
 
 const server = createServer(config);
-await server.start(8080);
+await server.start(3080);
 
-console.log('Proxy running on http://localhost:8080');
+console.log('Proxy running on http://localhost:3080');
 ```
 
 ### Converter Functions
@@ -208,7 +208,7 @@ Verify the proxy is running and check `~/.claude/settings.json` contains:
 ```json
 {
   "env": {
-    "ANTHROPIC_BASE_URL": "http://localhost:8080"
+    "ANTHROPIC_BASE_URL": "http://localhost:3080"
   }
 }
 ```

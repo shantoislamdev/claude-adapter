@@ -23,7 +23,7 @@ program
     .version('1.0.0');
 
 program
-    .option('-p, --port <port>', 'Port to run the proxy server on', '8080')
+    .option('-p, --port <port>', 'Port to run the proxy server on', '3080')
     .option('-r, --reconfigure', 'Force reconfiguration even if config exists')
     .action(async (options) => {
         console.log(chalk.cyan.bold('\n🔌 Claude Adapter\n'));
@@ -51,7 +51,7 @@ program
             }
 
             // Step 3: Find available port and start server
-            const preferredPort = parseInt(options.port, 10) || 8080;
+            const preferredPort = parseInt(options.port, 10) || 3080;
             const port = await findAvailablePort(preferredPort);
 
             console.log(chalk.yellow('\n🚀 Starting proxy server...'));
