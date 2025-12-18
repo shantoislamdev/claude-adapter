@@ -110,7 +110,22 @@ Configuration is stored in `~/.claude-adapter/config.json`:
 }
 ```
 
-### Model Mapping
+### Model Configuration
+
+When the CLI starts, it automatically updates Claude Code's settings (`~/.claude/settings.json`) with your configured models:
+
+```json
+{
+  "env": {
+    "ANTHROPIC_BASE_URL": "http://localhost:3080",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "gpt-5.2-codex",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "gpt-5.2-codex",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "gpt-5.2-mini"
+  }
+}
+```
+
+Claude Code sends these model names directly in its requests, and the adapter forwards them as-is to your OpenAI-compatible API.
 
 | Claude Model | Description  | Suggested OpenAI Model               |
 | ------------ | ------------ | ------------------------------------ |
@@ -142,6 +157,8 @@ await server.start(3080);
 
 console.log('Proxy running on http://localhost:3080');
 ```
+
+> **Note**: The adapter passes through the model name from requests directly. The `models` config is used to update Claude Code's settings when running via CLI.
 
 ### Converter Functions
 
