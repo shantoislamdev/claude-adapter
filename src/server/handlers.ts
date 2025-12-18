@@ -25,7 +25,7 @@ export function createMessagesHandler(config: AdapterConfig) {
             const targetModel = anthropicRequest.model;
 
             // Log request for debugging
-            console.log(`[claude-adapter] Forwarding request for model: ${targetModel}`);
+            console.log(`[adapter] → ${targetModel}`);
 
             // Convert request to OpenAI format
             const openaiRequest = convertRequestToOpenAI(anthropicRequest, targetModel);
@@ -83,7 +83,7 @@ async function handleStreamingRequest(
  * Handle errors and send appropriate response
  */
 function handleError(error: Error, reply: FastifyReply): void {
-    console.error('[claude-adapter] Error:', error.message);
+    console.error('[adapter] ✗', error.message);
 
     let statusCode = 500;
 

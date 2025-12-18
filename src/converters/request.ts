@@ -55,7 +55,7 @@ export function convertRequestToOpenAI(
                     // If we've seen this ID before, we must generate a new unique one
                     if (toolUseIds.has(originalId)) {
                         idToUse = `repaired_${Date.now().toString(36)}_${Math.random().toString(36).substr(2, 5)}`;
-                        console.log(`[claude-adapter] Repairing duplicate tool_use ID: ${originalId} -> ${idToUse}`);
+                        console.log(`[adapter] ID repair: ${originalId} → ${idToUse}`);
                         toolUse.id = idToUse;
                     }
 
@@ -88,7 +88,7 @@ export function convertRequestToOpenAI(
                         if (validIndex < replacements.length) {
                             const newId = replacements[validIndex];
                             if (newId !== originalId) {
-                                console.log(`[claude-adapter] Updating tool_result ID: ${originalId} -> ${newId}`);
+                                console.log(`[adapter] ID update: ${originalId} → ${newId}`);
                                 toolResult.tool_use_id = newId;
                             }
                             resultConsumption.set(originalId, validIndex + 1);
