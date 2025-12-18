@@ -11,13 +11,14 @@ import {
 } from './utils/config';
 import { createServer, findAvailablePort } from './server';
 import { UI } from './utils/ui';
+import { version } from '../package.json';
 
 const program = new Command();
 
 program
     .name('claude-adapter')
     .description('Proxy adapter to use OpenAI API with Claude Code')
-    .version('1.0.0');
+    .version(version);
 
 program
     .option('-p, --port <port>', 'Port to run the proxy server on', '3080')
