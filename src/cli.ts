@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 // CLI entry point for claude-adapter
 import { Command } from 'commander';
 import inquirer from 'inquirer';
@@ -23,6 +22,7 @@ program
     .option('-p, --port <port>', 'Port to run the proxy server on', '3080')
     .option('-r, --reconfigure', 'Force reconfiguration even if config exists')
     .action(async (options) => {
+        UI.banner();
         UI.header('Claude Adapter', 'Convert Anthropic API requests to OpenAI format for Claude Code');
 
         try {

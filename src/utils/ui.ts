@@ -111,6 +111,24 @@ export class UI {
         return chalk.hex(Palette.Highlight)(text);
     }
 
+    static banner() {
+        const brand = chalk.hex(Palette.Brand);
+        const dim = chalk.hex(Palette.Dim);
+
+        // USB adapter with CLAUDE text inside
+        const art = [
+            '',
+            dim('     ┌────────────────────┐'),
+            dim('     │ ') + brand('┌─┐┬  ┌─┐┬ ┬┌┬┐┌─┐') + dim(' ├──┐'),
+            dim('     │ ') + brand('│  │  ├─┤│ │ ││├┤ ') + dim(' │▓▓│'),
+            dim('     │ ') + brand('└─┘┴─┘┴ ┴└─┘─┴┘└─┘') + dim(' ├──┘'),
+            dim('     └──────•ADAPTER──────┘'),
+            '',
+        ];
+
+        art.forEach(line => this.log(line));
+    }
+
     static table(rows: { label: string; value: string }[]) {
         const maxLabelWidth = Math.max(...rows.map(r => r.label.length));
         this.log('');
