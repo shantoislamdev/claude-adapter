@@ -2,12 +2,16 @@
 import Fastify, { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { AdapterConfig } from '../types/config';
 import { createMessagesHandler } from './handlers';
+import { logger } from '../utils/logger';
 
 export interface ProxyServer {
     app: FastifyInstance;
     start: (port: number) => Promise<string>;
-    stop: () => Promise<void>;
+    stop: (timeout?: number) => Promise<void>;
 }
+
+// Default graceful shutdown timeout in milliseconds
+const DEFAULT_SHUTDOWN_TIMEOUT = 10000;
 
 /**
  * Create the proxy server with configured routes
@@ -41,6 +45,7 @@ export function createServer(config: AdapterConfig): ProxyServer {
             try {
                 await app.listen({ port, host: '0.0.0.0' });
                 const url = `http://localhost:${port}`;
+                logger.info('Server started', { port, url });
                 return url;
             } catch (err: any) {
                 if (err.code === 'EADDRINUSE') {
@@ -49,8 +54,24 @@ export function createServer(config: AdapterConfig): ProxyServer {
                 throw err;
             }
         },
-        stop: async () => {
-            await app.close();
+        stop: async (timeout: number = DEFAULT_SHUTDOWN_TIMEOUT): Promise<void> => {
+            logger.info('Initiating graceful shutdown', { timeout });
+
+            // Create a timeout promise for force shutdown
+            const forceShutdown = new Promise<void>((resolve) => {
+                setTimeout(() => {
+                    logger.warn('Graceful shutdown timeout exceeded, forcing close');
+                    resolve();
+                }, timeout);
+            });
+
+            // Race between graceful close and timeout
+            await Promise.race([
+                app.close().then(() => {
+                    logger.info('Server stopped gracefully');
+                }),
+                forceShutdown,
+            ]);
         },
     };
 }

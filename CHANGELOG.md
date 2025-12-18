@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2025-12-18
+
+### Added
+
+- **Request Input Validation**: Comprehensive validation for incoming Anthropic API requests with detailed error messages
+- **Structured Logging**: Logger utility with log levels (DEBUG/INFO/WARN/ERROR), timestamps, and colored output
+- **Request ID Tracing**: Unique request IDs (`X-Request-Id` header) for debugging and log correlation
+- **Graceful Shutdown**: Server shutdown with configurable timeout for in-flight requests
+- **API Documentation**: Complete API reference at `docs/API.md`
+
+### Improved
+
+- Test coverage increased from ~30% to ~70%
+- Added 98 unit tests covering converters, validation, logging, and server
+- Migrated from Express to Fastify for improved performance
+
+### New Test Files
+
+- `tests/validation.test.ts` - Request validation tests
+- `tests/streaming.test.ts` - SSE streaming tests
+- `tests/logger.test.ts` - Logger utility tests
+- `tests/server.test.ts` - Server setup tests
+
 ## [1.0.0] - 2025-12-17
 
 ### Added
@@ -33,5 +56,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-[Unreleased]: https://github.com/shantoislamdev/claude-adapter/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/shantoislamdev/claude-adapter/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/shantoislamdev/claude-adapter/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/shantoislamdev/claude-adapter/releases/tag/v1.0.0
