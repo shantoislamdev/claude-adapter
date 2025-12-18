@@ -45,12 +45,9 @@ export class UI {
         }
     }
 
-    static header(title: string, subtitle?: string) {
+    static header(subtitle: string) {
         this.log('');
-        this.log(chalk.hex(Palette.Brand).bold(`  ${title}`));
-        if (subtitle) {
-            this.log(chalk.hex(Palette.Dim)(`  ${subtitle}`));
-        }
+        this.log(chalk.hex(Palette.Dim)(`  ${subtitle}`));
         this.log('');
     }
 

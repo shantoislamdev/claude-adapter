@@ -23,7 +23,7 @@ program
     .option('-r, --reconfigure', 'Force reconfiguration even if config exists')
     .action(async (options) => {
         UI.banner();
-        UI.header('Claude Adapter', 'Convert Anthropic API requests to OpenAI format for Claude Code');
+        UI.header('Convert Anthropic API requests to OpenAI format for Claude Code');
 
         try {
             // Step 1: Update ~/.claude.json for onboarding skip
