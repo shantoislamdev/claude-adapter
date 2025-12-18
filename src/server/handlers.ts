@@ -1,5 +1,5 @@
 // Proxy server request handlers
-import { Request, Response } from 'express';
+import { FastifyRequest, FastifyReply } from 'fastify';
 import OpenAI from 'openai';
 import { AnthropicMessageRequest } from '../types/anthropic';
 import { AdapterConfig } from '../types/config';
@@ -16,9 +16,9 @@ export function createMessagesHandler(config: AdapterConfig) {
         apiKey: config.apiKey,
     });
 
-    return async (req: Request, res: Response): Promise<void> => {
+    return async (request: FastifyRequest, reply: FastifyReply): Promise<void> => {
         try {
-            const anthropicRequest = req.body as AnthropicMessageRequest;
+            const anthropicRequest = request.body as AnthropicMessageRequest;
 
             // Pass through the model directly from the request
             // Claude Code is already configured with the correct model via settings.json
@@ -32,13 +32,13 @@ export function createMessagesHandler(config: AdapterConfig) {
 
             if (anthropicRequest.stream) {
                 // Handle streaming response
-                await handleStreamingRequest(openai, openaiRequest, res, anthropicRequest.model);
+                await handleStreamingRequest(openai, openaiRequest, reply, anthropicRequest.model);
             } else {
                 // Handle non-streaming response
-                await handleNonStreamingRequest(openai, openaiRequest, res, anthropicRequest.model);
+                await handleNonStreamingRequest(openai, openaiRequest, reply, anthropicRequest.model);
             }
         } catch (error) {
-            handleError(error as Error, res);
+            handleError(error as Error, reply);
         }
     };
 }
@@ -49,7 +49,7 @@ export function createMessagesHandler(config: AdapterConfig) {
 async function handleNonStreamingRequest(
     openai: OpenAI,
     openaiRequest: any,
-    res: Response,
+    reply: FastifyReply,
     originalModel: string
 ): Promise<void> {
     const response = await openai.chat.completions.create({
@@ -59,7 +59,7 @@ async function handleNonStreamingRequest(
 
     const anthropicResponse = convertResponseToAnthropic(response as any, originalModel);
 
-    res.json(anthropicResponse);
+    reply.send(anthropicResponse);
 }
 
 /**
@@ -68,7 +68,7 @@ async function handleNonStreamingRequest(
 async function handleStreamingRequest(
     openai: OpenAI,
     openaiRequest: any,
-    res: Response,
+    reply: FastifyReply,
     originalModel: string
 ): Promise<void> {
     const stream = await openai.chat.completions.create({
@@ -76,13 +76,13 @@ async function handleStreamingRequest(
         stream: true,
     } as OpenAI.ChatCompletionCreateParamsStreaming);
 
-    await streamOpenAIToAnthropic(stream as any, res, originalModel);
+    await streamOpenAIToAnthropic(stream as any, reply, originalModel);
 }
 
 /**
  * Handle errors and send appropriate response
  */
-function handleError(error: Error, res: Response): void {
+function handleError(error: Error, reply: FastifyReply): void {
     console.error('[claude-adapter] Error:', error.message);
 
     let statusCode = 500;
@@ -93,5 +93,5 @@ function handleError(error: Error, res: Response): void {
     }
 
     const errorResponse = createErrorResponse(error, statusCode);
-    res.status(errorResponse.status).json({ error: errorResponse.error });
+    reply.code(errorResponse.status).send({ error: errorResponse.error });
 }

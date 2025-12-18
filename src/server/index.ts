@@ -1,72 +1,56 @@
-// Express proxy server setup
-import express, { Application } from 'express';
+// Fastify proxy server setup
+import Fastify, { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { AdapterConfig } from '../types/config';
 import { createMessagesHandler } from './handlers';
 
 export interface ProxyServer {
-    app: Application;
+    app: FastifyInstance;
     start: (port: number) => Promise<string>;
-    stop: () => void;
+    stop: () => Promise<void>;
 }
 
 /**
  * Create the proxy server with configured routes
  */
 export function createServer(config: AdapterConfig): ProxyServer {
-    const app = express();
-
-    // Middleware
-    app.use(express.json({ limit: '50mb' }));
+    const app = Fastify({ logger: false });
 
     // CORS headers for local development
-    app.use((req, res, next) => {
-        res.header('Access-Control-Allow-Origin', '*');
-        res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-        res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, anthropic-version, x-api-key');
+    app.addHook('onRequest', async (request: FastifyRequest, reply: FastifyReply) => {
+        reply.header('Access-Control-Allow-Origin', '*');
+        reply.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+        reply.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, anthropic-version, x-api-key');
 
-        if (req.method === 'OPTIONS') {
-            return res.sendStatus(200);
+        if (request.method === 'OPTIONS') {
+            reply.code(200).send();
+            return;
         }
-        next();
     });
 
     // Health check endpoint
-    app.get('/health', (req, res) => {
-        res.json({ status: 'ok', adapter: 'claude-adapter' });
+    app.get('/health', async (request: FastifyRequest, reply: FastifyReply) => {
+        return { status: 'ok', adapter: 'claude-adapter' };
     });
 
     // Main messages endpoint (matches Anthropic API)
     app.post('/v1/messages', createMessagesHandler(config));
 
-    let server: ReturnType<Application['listen']> | null = null;
-
     return {
         app,
-        start: (port: number): Promise<string> => {
-            return new Promise((resolve, reject) => {
-                try {
-                    server = app.listen(port, () => {
-                        const url = `http://localhost:${port}`;
-                        resolve(url);
-                    });
-
-                    server.on('error', (err: NodeJS.ErrnoException) => {
-                        if (err.code === 'EADDRINUSE') {
-                            reject(new Error(`Port ${port} is already in use. Try a different port.`));
-                        } else {
-                            reject(err);
-                        }
-                    });
-                } catch (error) {
-                    reject(error);
+        start: async (port: number): Promise<string> => {
+            try {
+                await app.listen({ port, host: '0.0.0.0' });
+                const url = `http://localhost:${port}`;
+                return url;
+            } catch (err: any) {
+                if (err.code === 'EADDRINUSE') {
+                    throw new Error(`Port ${port} is already in use. Try a different port.`);
                 }
-            });
-        },
-        stop: () => {
-            if (server) {
-                server.close();
-                server = null;
+                throw err;
             }
+        },
+        stop: async () => {
+            await app.close();
         },
     };
 }

@@ -70,10 +70,10 @@ program
             ]);
 
             // Keep the process running
-            process.on('SIGINT', () => {
+            process.on('SIGINT', async () => {
                 UI.log('');
                 UI.warning('Shutting down proxy server...');
-                server.stop();
+                await server.stop();
                 process.exit(0);
             });
 
