@@ -1,5 +1,5 @@
 // Streaming converter: OpenAI SSE → Anthropic SSE
-import { Response } from 'express';
+import { FastifyReply } from 'fastify';
 import { Stream } from 'openai/streaming';
 import {
     AnthropicMessageResponse,
@@ -55,7 +55,7 @@ interface StreamingState {
  */
 export async function streamOpenAIToAnthropic(
     openaiStream: Stream<OpenAIStreamChunk>,
-    res: Response,
+    reply: FastifyReply,
     originalModel: string
 ): Promise<void> {
     const state: StreamingState = {
@@ -69,35 +69,38 @@ export async function streamOpenAIToAnthropic(
         textContent: '',
     };
 
+    // Access the underlying Node.js response for SSE streaming
+    const raw = reply.raw;
+
     // Set SSE headers
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
-    res.setHeader('X-Accel-Buffering', 'no');
+    raw.setHeader('Content-Type', 'text/event-stream');
+    raw.setHeader('Cache-Control', 'no-cache');
+    raw.setHeader('Connection', 'keep-alive');
+    raw.setHeader('X-Accel-Buffering', 'no');
 
     try {
         for await (const chunk of openaiStream) {
-            processChunk(chunk, state, res);
+            processChunk(chunk, state, raw);
         }
 
         // Send final events
-        finishStream(state, res);
+        finishStream(state, raw);
     } catch (error) {
-        sendErrorEvent(error as Error, res);
+        sendErrorEvent(error as Error, raw);
     }
 }
 
 function processChunk(
     chunk: OpenAIStreamChunk,
     state: StreamingState,
-    res: Response
+    raw: any
 ): void {
     const choice = chunk.choices[0];
     if (!choice) return;
 
     // Send message_start on first chunk
     if (!state.hasStarted) {
-        sendMessageStart(state, res);
+        sendMessageStart(state, raw);
         state.hasStarted = true;
     }
 
@@ -107,17 +110,17 @@ function processChunk(
     if (delta.content) {
         // If this is the first text content, start a text block
         if (state.textContent === '' && state.contentBlockIndex === 0) {
-            sendContentBlockStart(state.contentBlockIndex, 'text', '', res);
+            sendContentBlockStart(state.contentBlockIndex, 'text', '', raw);
         }
 
         state.textContent += delta.content;
-        sendTextDelta(state.contentBlockIndex, delta.content, res);
+        sendTextDelta(state.contentBlockIndex, delta.content, raw);
     }
 
     // Handle tool calls
     if (delta.tool_calls) {
         for (const toolCall of delta.tool_calls) {
-            processToolCallDelta(toolCall, state, res);
+            processToolCallDelta(toolCall, state, raw);
         }
     }
 
@@ -131,13 +134,13 @@ function processChunk(
     if (choice.finish_reason) {
         // Close any open text block
         if (state.textContent !== '') {
-            sendContentBlockStop(state.contentBlockIndex, res);
+            sendContentBlockStop(state.contentBlockIndex, raw);
             state.contentBlockIndex++;
         }
 
         // Close any open tool calls
         for (const [index, toolCall] of state.currentToolCalls) {
-            sendContentBlockStop(index, res);
+            sendContentBlockStop(index, raw);
         }
     }
 }
@@ -145,7 +148,7 @@ function processChunk(
 function processToolCallDelta(
     toolCall: OpenAIStreamToolCall,
     state: StreamingState,
-    res: Response
+    raw: any
 ): void {
     const index = toolCall.index;
 
@@ -153,7 +156,7 @@ function processToolCallDelta(
     if (!state.currentToolCalls.has(index)) {
         // Close any previous text block first
         if (state.textContent !== '' && state.contentBlockIndex === 0) {
-            sendContentBlockStop(state.contentBlockIndex, res);
+            sendContentBlockStop(state.contentBlockIndex, raw);
             state.contentBlockIndex++;
         }
 
@@ -177,7 +180,7 @@ function processToolCallDelta(
 
         // Use content block index based on tool call position
         const blockIndex = state.contentBlockIndex + index;
-        sendContentBlockStart(blockIndex, 'tool_use', newToolCall.name, res, newToolCall.id);
+        sendContentBlockStart(blockIndex, 'tool_use', newToolCall.name, raw, newToolCall.id);
     }
 
     // Update tool call data
@@ -190,11 +193,11 @@ function processToolCallDelta(
     if (toolCall.function?.arguments) {
         currentCall.arguments += toolCall.function.arguments;
         const blockIndex = state.contentBlockIndex + index;
-        sendInputJsonDelta(blockIndex, toolCall.function.arguments, res);
+        sendInputJsonDelta(blockIndex, toolCall.function.arguments, raw);
     }
 }
 
-function sendMessageStart(state: StreamingState, res: Response): void {
+function sendMessageStart(state: StreamingState, raw: any): void {
     const event = {
         type: 'message_start',
         message: {
@@ -211,14 +214,14 @@ function sendMessageStart(state: StreamingState, res: Response): void {
             },
         },
     };
-    sendSSE(event, res);
+    sendSSE(event, raw);
 }
 
 function sendContentBlockStart(
     index: number,
     type: 'text' | 'tool_use',
     textOrName: string,
-    res: Response,
+    raw: any,
     id?: string
 ): void {
     let contentBlock: any;
@@ -239,10 +242,10 @@ function sendContentBlockStart(
         index,
         content_block: contentBlock,
     };
-    sendSSE(event, res);
+    sendSSE(event, raw);
 }
 
-function sendTextDelta(index: number, text: string, res: Response): void {
+function sendTextDelta(index: number, text: string, raw: any): void {
     const event = {
         type: 'content_block_delta',
         index,
@@ -251,10 +254,10 @@ function sendTextDelta(index: number, text: string, res: Response): void {
             text,
         },
     };
-    sendSSE(event, res);
+    sendSSE(event, raw);
 }
 
-function sendInputJsonDelta(index: number, partialJson: string, res: Response): void {
+function sendInputJsonDelta(index: number, partialJson: string, raw: any): void {
     const event = {
         type: 'content_block_delta',
         index,
@@ -263,18 +266,18 @@ function sendInputJsonDelta(index: number, partialJson: string, res: Response): 
             partial_json: partialJson,
         },
     };
-    sendSSE(event, res);
+    sendSSE(event, raw);
 }
 
-function sendContentBlockStop(index: number, res: Response): void {
+function sendContentBlockStop(index: number, raw: any): void {
     const event = {
         type: 'content_block_stop',
         index,
     };
-    sendSSE(event, res);
+    sendSSE(event, raw);
 }
 
-function finishStream(state: StreamingState, res: Response): void {
+function finishStream(state: StreamingState, raw: any): void {
     // Determine stop reason
     const hasToolCalls = state.currentToolCalls.size > 0;
     const stopReason = hasToolCalls ? 'tool_use' : 'end_turn';
@@ -290,15 +293,15 @@ function finishStream(state: StreamingState, res: Response): void {
             output_tokens: state.outputTokens,
         },
     };
-    sendSSE(deltaEvent, res);
+    sendSSE(deltaEvent, raw);
 
     // Send message_stop
-    sendSSE({ type: 'message_stop' }, res);
+    sendSSE({ type: 'message_stop' }, raw);
 
-    res.end();
+    raw.end();
 }
 
-function sendErrorEvent(error: Error, res: Response): void {
+function sendErrorEvent(error: Error, raw: any): void {
     const event = {
         type: 'error',
         error: {
@@ -306,11 +309,11 @@ function sendErrorEvent(error: Error, res: Response): void {
             message: error.message,
         },
     };
-    sendSSE(event, res);
-    res.end();
+    sendSSE(event, raw);
+    raw.end();
 }
 
-function sendSSE(data: any, res: Response): void {
-    res.write(`event: ${data.type}\n`);
-    res.write(`data: ${JSON.stringify(data)}\n\n`);
+function sendSSE(data: any, raw: any): void {
+    raw.write(`event: ${data.type}\n`);
+    raw.write(`data: ${JSON.stringify(data)}\n\n`);
 }
