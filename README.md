@@ -2,6 +2,14 @@
 
 # Claude Adapter
 
+```
+     ┌────────────────────┐
+     │ ┌─┐┬  ┌─┐┬ ┬┌┬┐┌─┐ ├──┐
+     │ │  │  ├─┤│ │ ││├┤  │▓▓│
+     │ └─┘┴─┘┴ ┴└─┘─┴┘└─┘ ├──┘
+     └──────•ADAPTER──────┘
+```
+
 **Transform your OpenAI API into an Anthropic-compatible endpoint for Claude Code**
 
 [![npm version](https://img.shields.io/npm/v/claude-adapter.svg)](https://www.npmjs.com/package/claude-adapter)
@@ -54,7 +62,7 @@
 
 ### Prerequisites
 
-- Node.js 18.0.0 or higher
+- Node.js 20.0.0 or higher
 - An OpenAI API key (or compatible API)
 
 ### Installation
