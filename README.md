@@ -64,9 +64,6 @@
 ```bash
 # Install globally
 npm install -g claude-adapter
-
-# Or run directly with npx
-npx claude-adapter
 ```
 
 ### Quick Start
@@ -96,38 +93,12 @@ npx claude-adapter
 | `-V, --version`     | Display version       | —       |
 | `-h, --help`        | Display help          | —       |
 
-### Configuration File
+### Configuration
 
-Configuration is stored in `~/.claude-adapter/config.json`:
+Claude Adapter handles all set up automatically through the interactive CLI. When you run the tool for the first time, it will guide you through connecting your API and mapping your models.
 
-```json
-{
-  "baseUrl": "https://api.openai.com/v1",
-  "apiKey": "sk-...",
-  "models": {
-    "opus": "gpt-5.2-codex",
-    "sonnet": "gpt-5.2-codex",
-    "haiku": "gpt-5.2-mini"
-  }
-}
-```
+Your settings are saved locally, and the tool automatically updates Claude Code's environment to ensure it routes through the proxy.
 
-### Model Configuration
-
-When the CLI starts, it automatically updates Claude Code's settings (`~/.claude/settings.json`) with your configured models:
-
-```json
-{
-  "env": {
-    "ANTHROPIC_BASE_URL": "http://localhost:3080",
-    "ANTHROPIC_DEFAULT_OPUS_MODEL": "gpt-5.2-codex",
-    "ANTHROPIC_DEFAULT_SONNET_MODEL": "gpt-5.2-codex",
-    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "gpt-5.2-mini"
-  }
-}
-```
-
-Claude Code sends these model names directly in its requests, and the adapter forwards them as-is to your OpenAI-compatible API.
 
 | Claude Model | Description  | Suggested OpenAI Model               |
 | ------------ | ------------ | ------------------------------------ |
