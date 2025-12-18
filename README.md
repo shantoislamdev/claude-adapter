@@ -2,6 +2,8 @@
 
 # Claude Adapter
 
+![Claude Adapter Logo](assets/logo.svg)
+
 **Transform your OpenAI API into an Anthropic-compatible endpoint for Claude Code**
 
 [![npm version](https://img.shields.io/npm/v/claude-adapter.svg)](https://www.npmjs.com/package/claude-adapter)

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="96" viewBox="0 0 240 96">
+  <style>
+    text {
+      font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
+      font-size: 14px;
+      white-space: pre;
+    }
+    .brand { fill: #D97757; }
+    .dim { fill: #6B6B6B; }
+  </style>
+  <text x="10" y="20" class="dim">┌────────────────────┐</text>
+  <text x="10" y="36"><tspan class="dim">│ </tspan><tspan class="brand">┌─┐┬  ┌─┐┬ ┬┌┬┐┌─┐</tspan><tspan class="dim"> ├──┐</tspan></text>
+  <text x="10" y="52"><tspan class="dim">│ </tspan><tspan class="brand">│  │  ├─┤│ │ ││├┤ </tspan><tspan class="dim"> │▓▓│</tspan></text>
+  <text x="10" y="68"><tspan class="dim">│ </tspan><tspan class="brand">└─┘┴─┘┴ ┴└─┘─┴┘└─┘</tspan><tspan class="dim"> ├──┘</tspan></text>
+  <text x="10" y="84" class="dim">└──────•ADAPTER──────┘</text>
+</svg>
