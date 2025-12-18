@@ -7,9 +7,7 @@ import {
     loadConfig,
     saveConfig,
     updateClaudeJson,
-    updateClaudeSettings,
-    getClaudePaths,
-    getConfigDir
+    updateClaudeSettings
 } from './utils/config';
 import { createServer, findAvailablePort } from './server';
 import { UI } from './utils/ui';
@@ -31,8 +29,7 @@ program
             // Step 1: Update ~/.claude.json for onboarding skip
             UI.startSpinner('Setting up Claude Code onboarding...');
             updateClaudeJson();
-            const paths = getClaudePaths();
-            UI.stopSpinner(true, `Updated ${UI.dim(paths.claudeJson)}`);
+            UI.stopSpinner(true, 'Claude onboarding configured');
 
             // Step 2: Load or create configuration
             let config = loadConfig();
@@ -42,9 +39,9 @@ program
                 UI.warning('Configuration required');
                 config = await promptForConfiguration();
                 saveConfig(config);
-                UI.success(`Configuration saved to ${UI.dim(`${getConfigDir()}/config.json`)}`);
+                UI.success('Configuration saved');
             } else {
-                UI.info(`Using existing configuration from ${UI.dim(`${getConfigDir()}/config.json`)}`);
+                UI.info('Using existing configuration');
             }
 
             // Step 3: Find available port and start server
@@ -59,7 +56,14 @@ program
             // Step 4: Update Claude Code settings
             UI.startSpinner('Updating Claude Code settings...');
             updateClaudeSettings(proxyUrl, config.models);
-            UI.stopSpinner(true, `Updated ${UI.dim(paths.claudeSettings)}`);
+            UI.stopSpinner(true, 'Claude Code settings updated');
+
+            // Display configured models
+            UI.table([
+                { label: 'Opus', value: config.models.opus },
+                { label: 'Sonnet', value: config.models.sonnet },
+                { label: 'Haiku', value: config.models.haiku }
+            ]);
 
             // Display final instructions
             UI.box('Setup Complete!', [

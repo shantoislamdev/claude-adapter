@@ -110,4 +110,14 @@ export class UI {
     static highlight(text: string): string {
         return chalk.hex(Palette.Highlight)(text);
     }
+
+    static table(rows: { label: string; value: string }[]) {
+        const maxLabelWidth = Math.max(...rows.map(r => r.label.length));
+        this.log('');
+        rows.forEach(row => {
+            const paddedLabel = row.label.padEnd(maxLabelWidth);
+            this.log(`  ${chalk.hex(Palette.Dim)(paddedLabel)}  ${chalk.hex(Palette.Highlight)(row.value)}`);
+        });
+        this.log('');
+    }
 }
