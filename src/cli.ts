@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 // CLI entry point for claude-adapter
 import { Command } from 'commander';
 import inquirer from 'inquirer';
