@@ -41,13 +41,12 @@
 
 ```
 ┌─────────────┐      ┌─────────────────┐      ┌─────────────────┐
-│             │      │                 │      │                 │
-│ Claude Code │─────▶│  Claude Adapter │─────▶│   OpenAI API    │
-│             │      │     (Proxy)     │      │  (or compatible)│
-│             │◀─────│                 │◀─────│                 │
+│              ────▶                   ────▶                   │
+│ Claude Code │      │  Claude Adapter │      │ OpenAI Endpoint │
+│               ◀────                   ◀────                  │
 └─────────────┘      └─────────────────┘      └─────────────────┘
-   Anthropic              Converts              OpenAI
-    Format               Formats                Format
+   Anthropic              Converts                  OpenAI
+    Format                Formats                   Format
 ```
 
 ---
