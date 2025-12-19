@@ -29,9 +29,8 @@ program
 
         try {
             // Step 1: Update ~/.claude.json for onboarding skip
-            UI.startSpinner('Setting up Claude Code onboarding...');
             updateClaudeJson();
-            UI.stopSpinner(true, 'Claude onboarding configured');
+            UI.statusDone(true, 'Initialized Claude Adapter');
 
             // Step 2: Load or create configuration
             let config = loadConfig();
@@ -41,7 +40,7 @@ program
                 UI.warning('Configuration required');
                 config = await promptForConfiguration();
                 saveConfig(config);
-                UI.success('Configuration saved');
+                UI.info('Creating Claude Adapter API...');
             } else {
                 UI.info('Using existing configuration');
             }
@@ -50,15 +49,13 @@ program
             const preferredPort = parseInt(options.port, 10) || 3080;
             const port = await findAvailablePort(preferredPort);
 
-            UI.startSpinner('Starting proxy server...');
             const server = createServer(config);
             const proxyUrl = await server.start(port);
-            UI.stopSpinner(true, `Proxy server running at ${UI.newUrl(proxyUrl)}`);
+            UI.statusDone(true, `Claude Adapter running at ${UI.newUrl(proxyUrl)}`);
 
             // Step 4: Update Claude Code settings
-            UI.startSpinner('Updating Claude Code settings...');
             updateClaudeSettings(proxyUrl, config.models);
-            UI.stopSpinner(true, 'Claude Code settings updated');
+            UI.statusDone(true, 'Models configured:');
 
             // Display configured models
             UI.table([
@@ -75,13 +72,13 @@ program
             // Keep the process running
             process.on('SIGINT', async () => {
                 UI.log('');
-                UI.warning('Shutting down proxy server...');
                 await server.stop();
+                UI.success('Claude Adapter stopped');
                 process.exit(0);
             });
 
         } catch (error) {
-            UI.stopSpinner(false, 'An error occurred');
+            UI.statusDone(false, 'An error occurred');
             UI.error('Setup failed', error as Error);
             process.exit(1);
         }

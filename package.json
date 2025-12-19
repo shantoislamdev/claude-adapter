@@ -55,8 +55,7 @@
     "commander": "^12.1.0",
     "fastify": "^5.1.0",
     "inquirer": "^8.2.6",
-    "openai": "4.76.0",
-    "ora": "^5.4.1"
+    "openai": "4.76.0"
   },
   "devDependencies": {
     "@types/inquirer": "^9.0.7",

@@ -1,5 +1,4 @@
 import chalk from 'chalk';
-import ora, { Ora } from 'ora';
 
 // Claude Code Inspired Palette
 const Palette = {
@@ -13,16 +12,8 @@ const Palette = {
 };
 
 export class UI {
-    private static spinner: Ora | null = null;
-
     static log(message: string) {
-        if (this.spinner) {
-            this.spinner.stop();
-            console.log(message);
-            this.spinner.start();
-        } else {
-            console.log(message);
-        }
+        console.log(message);
     }
 
     static info(message: string) {
@@ -50,38 +41,16 @@ export class UI {
         this.log('');
     }
 
-    static startSpinner(text: string) {
-        if (this.spinner) {
-            this.spinner.succeed(); // Finish previous spinner if any
-        }
-        this.spinner = ora({
-            text,
-            color: 'white', // Neutral spinner
-            spinner: 'dots'
-        }).start();
+    static status(text: string) {
+        this.log(`${chalk.hex(Palette.Dim)('•')} ${chalk.hex(Palette.Text)(text)}`);
     }
 
-    static updateSpinner(text: string) {
-        if (this.spinner) {
-            this.spinner.text = text;
-        }
-    }
-
-    static stopSpinner(success: boolean = true, text?: string) {
-        if (!this.spinner) return;
-
+    static statusDone(success: boolean = true, text?: string) {
         if (success) {
-            this.spinner.stopAndPersist({
-                symbol: chalk.hex(Palette.Dim)('✔'),
-                text: text
-            });
+            this.log(`${chalk.hex(Palette.Dim)('✔')} ${text || ''}`);
         } else {
-            this.spinner.stopAndPersist({
-                symbol: chalk.hex(Palette.Dim)('✖'),
-                text: text
-            });
+            this.log(`${chalk.hex(Palette.Dim)('✖')} ${text || ''}`);
         }
-        this.spinner = null;
     }
 
     static box(title: string, content: string[]) {

@@ -54,7 +54,6 @@ export function createServer(config: AdapterConfig): ProxyServer {
             }
         },
         stop: async (timeout: number = DEFAULT_SHUTDOWN_TIMEOUT): Promise<void> => {
-            logger.info('Initiating graceful shutdown', { timeout });
 
             // Create a timeout promise for force shutdown
             const forceShutdown = new Promise<void>((resolve) => {
@@ -66,9 +65,7 @@ export function createServer(config: AdapterConfig): ProxyServer {
 
             // Race between graceful close and timeout
             await Promise.race([
-                app.close().then(() => {
-                    logger.info('Server stopped gracefully');
-                }),
+                app.close(),
                 forceShutdown,
             ]);
         },
