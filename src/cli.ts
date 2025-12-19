@@ -67,13 +67,10 @@ program
                 { label: 'Haiku', value: config.models.haiku }
             ]);
 
-            // Display final instructions
-            UI.box('Setup Complete!', [
-                'Claude Code is now configured to use your OpenAI-compatible API.',
-                'You can now start Claude Code and it will route through this proxy.',
-                '',
-                'Press Ctrl+C to stop the proxy server.'
-            ]);
+            UI.success('Claude Adapter is ready!');
+            UI.info('Open a new terminal tab and run Claude Code.');
+            UI.hint('Press Ctrl+C to stop the proxy server.');
+            UI.log('');
 
             // Keep the process running
             process.on('SIGINT', async () => {

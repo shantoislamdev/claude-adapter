@@ -27,11 +27,11 @@ export class UI {
     }
 
     static info(message: string) {
-        this.log(`${chalk.hex(Palette.Dim).bold('•')} ${message}`);
+        this.log(`${chalk.hex(Palette.Dim).bold('•')} ${chalk.hex(Palette.Text)(message)}`);
     }
 
     static success(message: string) {
-        this.log(`${chalk.hex(Palette.Dim)('✔')} ${message}`);
+        this.log(`${chalk.hex(Palette.Brand)('✔')} ${chalk.hex(Palette.Brand)(message)}`);
     }
 
     static warning(message: string) {
