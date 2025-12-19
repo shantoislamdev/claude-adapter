@@ -1,6 +1,6 @@
 # API Reference
 
-Complete API documentation for Claude Adapter.
+Complete API documentation for **Claude Adapter** — *Adapt any model for Claude Code*.
 
 ## Endpoints
 
