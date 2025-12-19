@@ -108,6 +108,10 @@ export class UI {
         return chalk.hex(Palette.Highlight)(text);
     }
 
+    static hint(text: string) {
+        this.log(`  ${chalk.hex(Palette.Dim)(text)}`);
+    }
+
     static banner() {
         const brand = chalk.hex(Palette.Brand);
         const dim = chalk.hex(Palette.Dim);

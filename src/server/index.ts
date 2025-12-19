@@ -45,7 +45,6 @@ export function createServer(config: AdapterConfig): ProxyServer {
             try {
                 await app.listen({ port, host: '0.0.0.0' });
                 const url = `http://localhost:${port}`;
-                logger.info('Server started', { port, url });
                 return url;
             } catch (err: any) {
                 if (err.code === 'EADDRINUSE') {

@@ -95,12 +95,14 @@ program
  */
 async function promptForConfiguration(): Promise<AdapterConfig> {
     const prefix = UI.dim('?');
-    const answers = await inquirer.prompt([
+
+    // Required configuration prompts
+    const requiredAnswers = await inquirer.prompt([
         {
             type: 'input',
             name: 'baseUrl',
             prefix,
-            message: 'Enter your OpenAI or OpenAI-compatible base URL:',
+            message: 'OpenAI-compatible base URL:',
             default: 'https://api.openai.com/v1',
             transformer: (input: string) => UI.highlight(input),
             validate: (input: string) => {
@@ -116,7 +118,7 @@ async function promptForConfiguration(): Promise<AdapterConfig> {
             type: 'password',
             name: 'apiKey',
             prefix,
-            message: 'Enter your API key:',
+            message: 'API Key:',
             mask: '*',
             transformer: (input: string) => UI.highlight('*'.repeat(input.length)),
             validate: (input: string) => {
@@ -130,7 +132,7 @@ async function promptForConfiguration(): Promise<AdapterConfig> {
             type: 'input',
             name: 'opusModel',
             prefix,
-            message: 'Write the model name that you want to replace the Opus model with:',
+            message: 'Alternative model for Opus:',
             transformer: (input: string) => UI.highlight(input),
             validate: (input: string) => {
                 if (!input || input.trim() === '') {
@@ -139,32 +141,49 @@ async function promptForConfiguration(): Promise<AdapterConfig> {
                 return true;
             },
         },
-        {
-            type: 'input',
-            name: 'sonnetModel',
-            prefix,
-            message: 'Write the model name that you want to replace the Sonnet model with (Press Enter to skip):',
-            default: '',
-            transformer: (input: string) => UI.highlight(input),
-        },
-        {
-            type: 'input',
-            name: 'haikuModel',
-            prefix,
-            message: 'Write the model name that you want to replace the Haiku model with (Press Enter to skip):',
-            default: '',
-            transformer: (input: string) => UI.highlight(input),
-        },
     ]);
 
-    // Use opus model as fallback for unspecified models
-    const opusModel = answers.opusModel.trim();
-    const sonnetModel = answers.sonnetModel.trim() || opusModel;
-    const haikuModel = answers.haikuModel.trim() || sonnetModel;
+    const opusModel = requiredAnswers.opusModel.trim();
+
+    // Sonnet prompt
+    const sonnetAnswer = await inquirer.prompt([{
+        type: 'input',
+        name: 'sonnetModel',
+        prefix,
+        message: 'Alternative model for Sonnet:',
+        default: '',
+        transformer: (input: string) => input ? UI.highlight(input) : '',
+    }]);
+
+    const sonnetModel = sonnetAnswer.sonnetModel.trim() || opusModel;
+
+    // If skipped, replace blank line with fallback display
+    if (!sonnetAnswer.sonnetModel.trim()) {
+        process.stdout.write('\x1b[1A\x1b[2K');
+        console.log(`${prefix} Alternative model for Sonnet: ${UI.dim(`[${opusModel}]`)}`);
+    }
+
+    // Haiku prompt
+    const haikuAnswer = await inquirer.prompt([{
+        type: 'input',
+        name: 'haikuModel',
+        prefix,
+        message: 'Alternative model for Haiku:',
+        default: '',
+        transformer: (input: string) => input ? UI.highlight(input) : '',
+    }]);
+
+    const haikuModel = haikuAnswer.haikuModel.trim() || sonnetModel;
+
+    // If skipped, replace blank line with fallback display
+    if (!haikuAnswer.haikuModel.trim()) {
+        process.stdout.write('\x1b[1A\x1b[2K');
+        console.log(`${prefix} Alternative model for Haiku: ${UI.dim(`[${sonnetModel}]`)}`);
+    }
 
     return {
-        baseUrl: answers.baseUrl.trim(),
-        apiKey: answers.apiKey.trim(),
+        baseUrl: requiredAnswers.baseUrl.trim(),
+        apiKey: requiredAnswers.apiKey.trim(),
         models: {
             opus: opusModel,
             sonnet: sonnetModel,
