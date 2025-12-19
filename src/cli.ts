@@ -37,7 +37,6 @@ program
 
             if (!config || options.reconfigure) {
                 UI.log(''); // Spacing
-                UI.warning('Configuration required');
                 config = await promptForConfiguration();
                 saveConfig(config);
                 UI.info('Creating Claude Adapter API...');
@@ -145,7 +144,6 @@ async function promptForConfiguration(): Promise<AdapterConfig> {
         name: 'sonnetModel',
         prefix,
         message: 'Alternative model for Sonnet:',
-        default: '',
         transformer: (input: string) => input ? UI.highlight(input) : '',
     }]);
 
@@ -163,7 +161,6 @@ async function promptForConfiguration(): Promise<AdapterConfig> {
         name: 'haikuModel',
         prefix,
         message: 'Alternative model for Haiku:',
-        default: '',
         transformer: (input: string) => input ? UI.highlight(input) : '',
     }]);
 
