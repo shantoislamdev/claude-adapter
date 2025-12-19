@@ -4,7 +4,6 @@ import ora, { Ora } from 'ora';
 // Claude Code Inspired Palette
 const Palette = {
     Brand: '#D97757',      // Warm Terracotta (Main Brand)
-    Success: '#A78BFA',    // Soft Purple (Was Green)
     Error: '#D95858',      // Soft Red
     Warning: '#D9A458',    // Mustard Yellow
     Dim: '#6B6B6B',        // Dark Gray
