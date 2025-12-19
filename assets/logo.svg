@@ -1,7 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="240" height="96" viewBox="0 0 240 96">
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="96" viewBox="0 0 240 96" xml:space="preserve">
   <style>
     text {
-      font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
+      font-family: ui-monospace, SFMono-Regular, "SF Mono", "Roboto Mono", "Liberation Mono", Menlo, Monaco, Consolas, "Courier New", monospace;
       font-size: 14px;
       white-space: pre;
     }
