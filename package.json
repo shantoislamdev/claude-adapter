@@ -23,6 +23,8 @@
   ],
   "keywords": [
     "claude",
+    "claude-code-adapter",
+    "openai-to-claude",
     "openai",
     "anthropic",
     "proxy",
