@@ -1,16 +1,16 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="240" height="96" viewBox="0 0 240 96" xml:space="preserve">
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="720" viewBox="0 0 1800 720" xml:space="preserve">
   <style>
     text {
       font-family: ui-monospace, SFMono-Regular, "SF Mono", "Roboto Mono", "Liberation Mono", Menlo, Monaco, Consolas, "Courier New", monospace;
-      font-size: 14px;
+      font-size: 105px;
       white-space: pre;
     }
     .brand { fill: #D97757; }
     .dim { fill: #6B6B6B; }
   </style>
-  <text x="10" y="20" class="dim">┌────────────────────┐</text>
-  <text x="10" y="36"><tspan class="dim">│ </tspan><tspan class="brand">┌─┐┬  ┌─┐┬ ┬┌┬┐┌─┐</tspan><tspan class="dim"> ├──┐</tspan></text>
-  <text x="10" y="52"><tspan class="dim">│ </tspan><tspan class="brand">│  │  ├─┤│ │ ││├┤ </tspan><tspan class="dim"> │▓▓│</tspan></text>
-  <text x="10" y="68"><tspan class="dim">│ </tspan><tspan class="brand">└─┘┴─┘┴ ┴└─┘─┴┘└─┘</tspan><tspan class="dim"> ├──┘</tspan></text>
-  <text x="10" y="84" class="dim">└──────•ADAPTER──────┘</text>
+  <text x="75" y="150" class="dim">┌────────────────────┐</text>
+  <text x="75" y="270"><tspan class="dim">│ </tspan><tspan class="brand">┌─┐┬  ┌─┐┬ ┬┌┬┐┌─┐</tspan><tspan class="dim"> ├──┐</tspan></text>
+  <text x="75" y="390"><tspan class="dim">│ </tspan><tspan class="brand">│  │  ├─┤│ │ ││├┤ </tspan><tspan class="dim"> │▓▓│</tspan></text>
+  <text x="75" y="510"><tspan class="dim">│ </tspan><tspan class="brand">└─┘┴─┘┴ ┴└─┘─┴┘└─┘</tspan><tspan class="dim"> ├──┘</tspan></text>
+  <text x="75" y="630" class="dim">└──────•ADAPTER──────┘</text>
 </svg>

@@ -2,7 +2,7 @@
 
 # Claude Adapter
 
-![Claude Adapter Logo](assets/logo.svg)
+![Claude Adapter Logo](assets/banner.png)
 
 **Transform your OpenAI API into an Anthropic-compatible endpoint for Claude Code**
 
