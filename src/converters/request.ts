@@ -36,9 +36,17 @@ export function convertRequestToOpenAI(
         });
     }
 
-    // Convert messages
+    // Track tool ID deduplication across messages
+    // Maps original ID -> array of unique IDs (for handling duplicates)
+    const idDeduplication = {
+        seenIds: new Set<string>(),
+        idMappings: new Map<string, string[]>(),
+        resultIndex: new Map<string, number>()  // Tracks which mapping to use for tool_results
+    };
+
+    // Convert messages with shared deduplication context
     for (const msg of anthropicRequest.messages) {
-        const converted = convertMessage(msg);
+        const converted = convertMessage(msg, idDeduplication);
         messages.push(...converted);
     }
 
@@ -84,10 +92,19 @@ function isAssistantPrefill(content: string): boolean {
 }
 
 /**
+ * Context for tracking tool ID deduplication across messages
+ */
+interface IdDeduplicationContext {
+    seenIds: Set<string>;
+    idMappings: Map<string, string[]>;
+    resultIndex: Map<string, number>;
+}
+
+/**
  * Convert a single Anthropic message to OpenAI format
  * May return multiple messages (e.g., tool results become separate messages)
  */
-function convertMessage(msg: AnthropicMessage): OpenAIMessage[] {
+function convertMessage(msg: AnthropicMessage, ctx: IdDeduplicationContext): OpenAIMessage[] {
     const result: OpenAIMessage[] = [];
 
     if (typeof msg.content === 'string') {
@@ -105,7 +122,7 @@ function convertMessage(msg: AnthropicMessage): OpenAIMessage[] {
     } else {
         // Array of content blocks
         if (msg.role === 'user') {
-            const { userContent, toolResults } = processUserContentBlocks(msg.content);
+            const { userContent, toolResults } = processUserContentBlocks(msg.content, ctx);
 
             // Add tool results as separate tool messages
             result.push(...toolResults);
@@ -121,7 +138,7 @@ function convertMessage(msg: AnthropicMessage): OpenAIMessage[] {
             }
         } else {
             // Assistant message with content blocks
-            const { textContent, toolCalls } = processAssistantContentBlocks(msg.content);
+            const { textContent, toolCalls } = processAssistantContentBlocks(msg.content, ctx);
 
             // Skip assistant prefill messages when content is just a JSON starter
             // These are Anthropic-specific and cause 400 errors with other providers
@@ -148,7 +165,10 @@ function convertMessage(msg: AnthropicMessage): OpenAIMessage[] {
 /**
  * Process user content blocks, separating tool results from regular content
  */
-function processUserContentBlocks(blocks: AnthropicContentBlock[]): {
+function processUserContentBlocks(
+    blocks: AnthropicContentBlock[],
+    ctx: IdDeduplicationContext
+): {
     userContent: OpenAIUserContentPart[];
     toolResults: OpenAIToolMessage[];
 } {
@@ -173,9 +193,20 @@ function processUserContentBlocks(blocks: AnthropicContentBlock[]): {
                 content = '';
             }
 
+            // Look up the deduplicated ID if one exists
+            let toolCallId = toolResult.tool_use_id;
+            if (ctx.idMappings.has(toolResult.tool_use_id)) {
+                const mappings = ctx.idMappings.get(toolResult.tool_use_id)!;
+                const idx = ctx.resultIndex.get(toolResult.tool_use_id) || 0;
+                if (idx < mappings.length) {
+                    toolCallId = mappings[idx];
+                    ctx.resultIndex.set(toolResult.tool_use_id, idx + 1);
+                }
+            }
+
             toolResults.push({
                 role: 'tool',
-                tool_call_id: toolResult.tool_use_id,
+                tool_call_id: toolCallId,
                 content: toolResult.is_error ? `Error: ${content}` : content,
             });
         }
@@ -187,8 +218,12 @@ function processUserContentBlocks(blocks: AnthropicContentBlock[]): {
 
 /**
  * Process assistant content blocks, extracting text and tool calls
+ * Deduplicates tool IDs to prevent errors with providers that reject duplicates
  */
-function processAssistantContentBlocks(blocks: AnthropicContentBlock[]): {
+function processAssistantContentBlocks(
+    blocks: AnthropicContentBlock[],
+    ctx: IdDeduplicationContext
+): {
     textContent: string;
     toolCalls: Array<{ id: string; type: 'function'; function: { name: string; arguments: string } }>;
 } {
@@ -200,8 +235,39 @@ function processAssistantContentBlocks(blocks: AnthropicContentBlock[]): {
             textContent += block.text;
         } else if (block.type === 'tool_use') {
             const toolUse = block as AnthropicToolUseBlock;
+            let idToUse = toolUse.id;
+
+            // If we've seen this ID before, generate a unique one
+            // This handles duplicate IDs without mutating the original request
+            if (ctx.seenIds.has(toolUse.id)) {
+                const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+                const originalLen = toolUse.id.length;
+
+                if (originalLen > 11) {
+                    // Keep first 8 chars, randomize the rest
+                    idToUse = toolUse.id.substring(0, 8);
+                    for (let i = 8; i < originalLen; i++) {
+                        idToUse += chars.charAt(Math.floor(Math.random() * chars.length));
+                    }
+                } else {
+                    // Generate entirely new ID of same length
+                    idToUse = '';
+                    for (let i = 0; i < originalLen; i++) {
+                        idToUse += chars.charAt(Math.floor(Math.random() * chars.length));
+                    }
+                }
+                console.log(`[adapter] Repair ID: ${toolUse.id} → ${idToUse}`);
+            }
+            ctx.seenIds.add(idToUse);
+
+            // Track the mapping for tool_result matching
+            if (!ctx.idMappings.has(toolUse.id)) {
+                ctx.idMappings.set(toolUse.id, []);
+            }
+            ctx.idMappings.get(toolUse.id)!.push(idToUse);
+
             toolCalls.push({
-                id: toolUse.id,
+                id: idToUse,
                 type: 'function',
                 function: {
                     name: toolUse.name,
