@@ -32,8 +32,7 @@
     "api",
     "claude-code",
     "llm",
-    "ai",
-    "chatgpt"
+    "ai"
   ],
   "author": {
     "name": "Shanto Islam",
@@ -48,7 +47,7 @@
   "bugs": {
     "url": "https://github.com/shantoislamdev/claude-adapter/issues"
   },
-  "homepage": "https://github.com/shantoislamdev/claude-adapter#readme",
+  "homepage": "https://claude-adapter.pages.dev/",
   "dependencies": {
     "@anthropic-ai/sdk": "0.71.2",
     "chalk": "^4.1.2",
