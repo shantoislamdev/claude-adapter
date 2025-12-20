@@ -53,8 +53,13 @@ export function convertRequestToOpenAI(
                     let idToUse = originalId;
 
                     // If we've seen this ID before, we must generate a new unique one
+                    // Mistral requires tool_call_id to be exactly 9 alphanumeric chars (a-z, A-Z, 0-9)
                     if (toolUseIds.has(originalId)) {
-                        idToUse = `repaired_${Date.now().toString(36)}_${Math.random().toString(36).substr(2, 5)}`;
+                        const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+                        idToUse = '';
+                        for (let i = 0; i < 9; i++) {
+                            idToUse += chars.charAt(Math.floor(Math.random() * chars.length));
+                        }
                         console.log(`[adapter] ID repair: ${originalId} → ${idToUse}`);
                         toolUse.id = idToUse;
                     }
