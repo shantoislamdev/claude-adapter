@@ -7,11 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.1.2] - 2025-12-20
+## [1.1.3] - 2025-12-20
 
 ### Fixed
 
 - **Tool Call ID Handling**: Removed ID repair logic that was incorrectly modifying tool_use IDs on each request, causing tool_use/result pairing failures across conversation turns
+
+## [1.1.2] - 2025-12-20
+
+### Fixed
+
+- **Tool Call ID Format**: Attempted fix for 400 errors with 9-character alphanumeric IDs (superseded by v1.1.3)
 
 ## [1.1.1] - 2025-12-20
 
@@ -74,7 +80,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-[Unreleased]: https://github.com/shantoislamdev/claude-adapter/compare/v1.1.2...HEAD
+[Unreleased]: https://github.com/shantoislamdev/claude-adapter/compare/v1.1.3...HEAD
+[1.1.3]: https://github.com/shantoislamdev/claude-adapter/compare/v1.1.2...v1.1.3
 [1.1.2]: https://github.com/shantoislamdev/claude-adapter/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/shantoislamdev/claude-adapter/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/shantoislamdev/claude-adapter/compare/v1.0.0...v1.1.0
