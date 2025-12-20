@@ -396,5 +396,163 @@ describe('Request Converter', () => {
             expect(assistantMsg.tool_calls).toHaveLength(1);
         });
     });
-});
 
+    describe('Assistant prefill detection', () => {
+        it('should skip assistant message with just { as content', () => {
+            const anthropicRequest: AnthropicMessageRequest = {
+                model: 'claude-4.5-sonnet',
+                max_tokens: 1024,
+                messages: [
+                    { role: 'user', content: 'Generate JSON' },
+                    { role: 'assistant', content: '{' }
+                ]
+            };
+
+            const result = convertRequestToOpenAI(anthropicRequest, 'gpt-4');
+
+            // Should only have user message, assistant prefill skipped
+            expect(result.messages).toHaveLength(1);
+            expect(result.messages[0].role).toBe('user');
+        });
+
+        it('should skip assistant message with just [ as content', () => {
+            const anthropicRequest: AnthropicMessageRequest = {
+                model: 'claude-4.5-sonnet',
+                max_tokens: 1024,
+                messages: [
+                    { role: 'user', content: 'List items' },
+                    { role: 'assistant', content: '[' }
+                ]
+            };
+
+            const result = convertRequestToOpenAI(anthropicRequest, 'gpt-4');
+
+            expect(result.messages).toHaveLength(1);
+        });
+
+        it('should skip assistant message with ``` as content', () => {
+            const anthropicRequest: AnthropicMessageRequest = {
+                model: 'claude-4.5-sonnet',
+                max_tokens: 1024,
+                messages: [
+                    { role: 'user', content: 'Write code' },
+                    { role: 'assistant', content: '```' }
+                ]
+            };
+
+            const result = convertRequestToOpenAI(anthropicRequest, 'gpt-4');
+
+            expect(result.messages).toHaveLength(1);
+        });
+
+        it('should skip assistant message with {" as content', () => {
+            const anthropicRequest: AnthropicMessageRequest = {
+                model: 'claude-4.5-sonnet',
+                max_tokens: 1024,
+                messages: [
+                    { role: 'user', content: 'Get data' },
+                    { role: 'assistant', content: '{"' }
+                ]
+            };
+
+            const result = convertRequestToOpenAI(anthropicRequest, 'gpt-4');
+
+            expect(result.messages).toHaveLength(1);
+        });
+
+        it('should keep assistant message with actual content', () => {
+            const anthropicRequest: AnthropicMessageRequest = {
+                model: 'claude-4.5-sonnet',
+                max_tokens: 1024,
+                messages: [
+                    { role: 'user', content: 'Hello' },
+                    { role: 'assistant', content: 'Hello! How can I help you today?' }
+                ]
+            };
+
+            const result = convertRequestToOpenAI(anthropicRequest, 'gpt-4');
+
+            expect(result.messages).toHaveLength(2);
+            expect(result.messages[1].content).toBe('Hello! How can I help you today?');
+        });
+
+        it('should skip prefill in content block array', () => {
+            const anthropicRequest: AnthropicMessageRequest = {
+                model: 'claude-4.5-sonnet',
+                max_tokens: 1024,
+                messages: [
+                    { role: 'user', content: 'Generate JSON' },
+                    {
+                        role: 'assistant',
+                        content: [{ type: 'text', text: '{' }]
+                    }
+                ]
+            };
+
+            const result = convertRequestToOpenAI(anthropicRequest, 'gpt-4');
+
+            expect(result.messages).toHaveLength(1);
+        });
+    });
+
+    describe('Duplicate tool ID repair', () => {
+        it('should handle duplicate tool_use IDs in conversation', () => {
+            const anthropicRequest: AnthropicMessageRequest = {
+                model: 'claude-4.5-sonnet',
+                max_tokens: 1024,
+                messages: [
+                    { role: 'user', content: 'First request' },
+                    {
+                        role: 'assistant',
+                        content: [{
+                            type: 'tool_use',
+                            id: 'toolu_duplicate',
+                            name: 'get_data',
+                            input: { query: 'first' }
+                        }]
+                    },
+                    {
+                        role: 'user',
+                        content: [{
+                            type: 'tool_result',
+                            tool_use_id: 'toolu_duplicate',
+                            content: 'First result'
+                        }]
+                    },
+                    { role: 'user', content: 'Second request' },
+                    {
+                        role: 'assistant',
+                        content: [{
+                            type: 'tool_use',
+                            id: 'toolu_duplicate', // Same ID - should be repaired
+                            name: 'get_data',
+                            input: { query: 'second' }
+                        }]
+                    },
+                    {
+                        role: 'user',
+                        content: [{
+                            type: 'tool_result',
+                            tool_use_id: 'toolu_duplicate',
+                            content: 'Second result'
+                        }]
+                    }
+                ]
+            };
+
+            // This should not throw - IDs should be repaired
+            const result = convertRequestToOpenAI(anthropicRequest, 'gpt-4');
+
+            // Should have all messages converted
+            expect(result.messages.length).toBeGreaterThan(0);
+
+            // Check that tool calls have unique IDs
+            const toolCalls = result.messages
+                .filter((m: any) => m.tool_calls)
+                .flatMap((m: any) => m.tool_calls);
+
+            const uniqueIds = new Set(toolCalls.map((tc: any) => tc.id));
+            expect(uniqueIds.size).toBe(toolCalls.length);
+        });
+    });
+});

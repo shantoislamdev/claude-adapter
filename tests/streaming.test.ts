@@ -291,5 +291,102 @@ describe('Streaming Converter', () => {
             expect(errorEvent!.data.error.message).toBe('Stream connection lost');
             expect(mockRaw.ended).toBe(true);
         });
+
+        it('should handle empty stream with only stop signal', async () => {
+            const mockRaw = new MockRawResponse();
+            const mockReply = { raw: mockRaw } as any;
+
+            const stream = createMockStream([
+                { choices: [{ delta: {}, finish_reason: 'stop' }] },
+            ]);
+
+            await streamOpenAIToAnthropic(stream as any, mockReply, 'claude-4-opus');
+
+            const events = mockRaw.getEvents();
+            expect(events.find(e => e.data.type === 'message_start')).toBeDefined();
+            expect(events.find(e => e.data.type === 'message_stop')).toBeDefined();
+            expect(mockRaw.ended).toBe(true);
+        });
+
+        it('should handle multiple tool calls in a single response', async () => {
+            const mockRaw = new MockRawResponse();
+            const mockReply = { raw: mockRaw } as any;
+
+            const stream = createMockStream([
+                {
+                    choices: [{
+                        delta: {
+                            tool_calls: [
+                                { index: 0, id: 'call_first', function: { name: 'tool_a' } },
+                                { index: 1, id: 'call_second', function: { name: 'tool_b' } }
+                            ]
+                        },
+                        finish_reason: null
+                    }]
+                },
+                {
+                    choices: [{
+                        delta: {
+                            tool_calls: [
+                                { index: 0, function: { arguments: '{"x":1}' } },
+                                { index: 1, function: { arguments: '{"y":2}' } }
+                            ]
+                        },
+                        finish_reason: null
+                    }]
+                },
+                { choices: [{ delta: {}, finish_reason: 'tool_calls' }] },
+            ]);
+
+            await streamOpenAIToAnthropic(stream as any, mockReply, 'claude-4-opus');
+
+            const events = mockRaw.getEvents();
+
+            // Should have two tool_use content blocks started
+            const toolBlockStarts = events.filter(e =>
+                e.data.type === 'content_block_start' &&
+                e.data.content_block?.type === 'tool_use'
+            );
+            expect(toolBlockStarts.length).toBeGreaterThanOrEqual(1);
+        });
+
+        it('should handle stream with text followed by tool call', async () => {
+            const mockRaw = new MockRawResponse();
+            const mockReply = { raw: mockRaw } as any;
+
+            const stream = createMockStream([
+                { choices: [{ delta: { content: 'Let me help with that.' }, finish_reason: null }] },
+                {
+                    choices: [{
+                        delta: {
+                            tool_calls: [{
+                                index: 0,
+                                id: 'call_combo',
+                                function: { name: 'helper', arguments: '{}' }
+                            }]
+                        },
+                        finish_reason: null
+                    }]
+                },
+                { choices: [{ delta: {}, finish_reason: 'tool_calls' }] },
+            ]);
+
+            await streamOpenAIToAnthropic(stream as any, mockReply, 'claude-4-opus');
+
+            const events = mockRaw.getEvents();
+
+            // Should have both text and tool_use content blocks
+            const textBlock = events.find(e =>
+                e.data.type === 'content_block_start' &&
+                e.data.content_block?.type === 'text'
+            );
+            const toolBlock = events.find(e =>
+                e.data.type === 'content_block_start' &&
+                e.data.content_block?.type === 'tool_use'
+            );
+
+            expect(textBlock).toBeDefined();
+            expect(toolBlock).toBeDefined();
+        });
     });
 });
