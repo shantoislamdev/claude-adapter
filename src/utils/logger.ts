@@ -50,14 +50,23 @@ class Logger {
     private log(level: LogLevel, message: string, meta?: Record<string, unknown>): void {
         if (level < this.level) return;
 
-        const color = levelColors[level];
-        const levelName = levelNames[level].padEnd(5);
-        const timestamp = this.formatTimestamp();
+        let output: string;
 
-        let output = `${color}[${timestamp}] [${this.prefix}] ${levelName}${RESET} ${message}`;
-
-        if (meta && Object.keys(meta).length > 0) {
-            output += ` ${JSON.stringify(meta)}`;
+        // Use simple format for INFO in non-debug mode
+        if (level === LogLevel.INFO && this.level > LogLevel.DEBUG) {
+            output = message;
+            if (meta && Object.keys(meta).length > 0) {
+                output += ` ${JSON.stringify(meta)}`;
+            }
+        } else {
+            // Full format with timestamp for DEBUG or when in debug mode
+            const color = levelColors[level];
+            const levelName = levelNames[level].padEnd(5);
+            const timestamp = this.formatTimestamp();
+            output = `${color}[${timestamp}] [${this.prefix}] ${levelName}${RESET} ${message}`;
+            if (meta && Object.keys(meta).length > 0) {
+                output += ` ${JSON.stringify(meta)}`;
+            }
         }
 
         if (level === LogLevel.ERROR) {

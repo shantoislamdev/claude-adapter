@@ -156,7 +156,7 @@ describe('Request Converter', () => {
             expect(result.stream).toBe(true);
         });
 
-        it('should include user metadata', () => {
+        it('should NOT include user metadata (for provider compatibility)', () => {
             const anthropicRequest: AnthropicMessageRequest = {
                 model: 'claude-4.5-sonnet',
                 max_tokens: 1024,
@@ -168,7 +168,8 @@ describe('Request Converter', () => {
 
             const result = convertRequestToOpenAI(anthropicRequest, 'gpt-4');
 
-            expect(result.user).toBe('user_123');
+            // user field should NOT be set - some providers (Mistral) reject unknown params
+            expect(result.user).toBeUndefined();
         });
 
         it('should convert tool definitions', () => {

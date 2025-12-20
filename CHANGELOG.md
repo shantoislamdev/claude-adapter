@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.1] - 2025-12-20
+
+### Fixed
+
+- **OpenAI-Compatible API Support**: Fixed 422 errors with providers like Mistral that strictly reject unsupported parameters (removed `user` field from requests)
+- **Assistant Prefill Compatibility**: Fixed 400 errors by detecting and skipping Anthropic-specific assistant prefill messages (e.g., `{` for JSON output) that other providers don't support
+
+### Improved
+
+- **Simplified Logging**: Cleaner log output in non-debug mode with simple `→ model [sent]` / `← model [received]` format
+- **Debug Logging**: Full timestamps and metadata preserved in debug mode (`LOG_LEVEL=debug`)
+
 ## [1.1.0] - 2025-12-18
 
 ### Added
@@ -56,6 +68,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-[Unreleased]: https://github.com/shantoislamdev/claude-adapter/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/shantoislamdev/claude-adapter/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/shantoislamdev/claude-adapter/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/shantoislamdev/claude-adapter/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/shantoislamdev/claude-adapter/releases/tag/v1.0.0

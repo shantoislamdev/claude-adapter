@@ -122,9 +122,8 @@ export function convertRequestToOpenAI(
     if (anthropicRequest.stop_sequences) {
         openaiRequest.stop = anthropicRequest.stop_sequences;
     }
-    if (anthropicRequest.metadata?.user_id) {
-        openaiRequest.user = anthropicRequest.metadata.user_id;
-    }
+    // Note: metadata.user_id is intentionally NOT mapped to OpenAI's 'user' field
+    // because some providers (e.g., Mistral) strictly reject unsupported parameters
 
     // Convert tools
     if (anthropicRequest.tools && anthropicRequest.tools.length > 0) {
@@ -135,6 +134,16 @@ export function convertRequestToOpenAI(
     }
 
     return openaiRequest;
+}
+
+/**
+ * Check if content is an assistant prefill token (JSON starter)
+ * Anthropic supports prefilling assistant responses, but other providers don't
+ */
+function isAssistantPrefill(content: string): boolean {
+    const prefillTokens = ['{', '[', '```', '{"', '[{'];
+    const trimmed = content.trim();
+    return prefillTokens.includes(trimmed) || trimmed.length <= 2;
 }
 
 /**
@@ -149,6 +158,11 @@ function convertMessage(msg: AnthropicMessage): OpenAIMessage[] {
         if (msg.role === 'user') {
             result.push({ role: 'user', content: msg.content });
         } else {
+            // Skip assistant prefill messages (e.g., "{" for JSON output)
+            // These are Anthropic-specific and cause 400 errors with other providers
+            if (isAssistantPrefill(msg.content)) {
+                return result; // Return empty - skip this message
+            }
             result.push({ role: 'assistant', content: msg.content });
         }
     } else {
@@ -171,6 +185,12 @@ function convertMessage(msg: AnthropicMessage): OpenAIMessage[] {
         } else {
             // Assistant message with content blocks
             const { textContent, toolCalls } = processAssistantContentBlocks(msg.content);
+
+            // Skip assistant prefill messages when content is just a JSON starter
+            // These are Anthropic-specific and cause 400 errors with other providers
+            if (toolCalls.length === 0 && textContent && isAssistantPrefill(textContent)) {
+                return result; // Return empty - skip this message
+            }
 
             const assistantMsg: OpenAIMessage = {
                 role: 'assistant',

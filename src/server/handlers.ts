@@ -50,23 +50,18 @@ export function createMessagesHandler(config: AdapterConfig) {
             const targetModel = anthropicRequest.model;
             const isStreaming = anthropicRequest.stream ?? false;
 
-            log.info('Request received', {
-                model: targetModel,
-                streaming: isStreaming,
-                messageCount: anthropicRequest.messages.length
-            });
+            log.info(`→ ${targetModel} [sent]`);
 
             // Convert request to OpenAI format
             const openaiRequest = convertRequestToOpenAI(anthropicRequest, targetModel);
 
             if (isStreaming) {
-                log.debug('Starting streaming response');
                 await handleStreamingRequest(openai, openaiRequest, reply, anthropicRequest.model, log);
             } else {
                 await handleNonStreamingRequest(openai, openaiRequest, reply, anthropicRequest.model, log);
             }
 
-            log.info('Request completed', { model: targetModel });
+            log.info(`← ${targetModel} [received]`);
         } catch (error) {
             handleError(error as Error, reply, log);
         }
@@ -83,7 +78,7 @@ async function handleNonStreamingRequest(
     originalModel: string,
     log: RequestLogger
 ): Promise<void> {
-    log.debug('Making non-streaming request to OpenAI');
+    log.debug('Making non-streaming request');
 
     const response = await openai.chat.completions.create({
         ...openaiRequest,
@@ -109,7 +104,7 @@ async function handleStreamingRequest(
     originalModel: string,
     log: RequestLogger
 ): Promise<void> {
-    log.debug('Making streaming request to OpenAI');
+    log.debug('Making streaming request');
 
     const stream = await openai.chat.completions.create({
         ...openaiRequest,
@@ -136,4 +131,5 @@ function handleError(error: Error, reply: FastifyReply, log: RequestLogger): voi
     const errorResponse = createErrorResponse(error, statusCode);
     reply.code(errorResponse.status).send({ error: errorResponse.error });
 }
+
 
