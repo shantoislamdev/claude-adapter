@@ -37,6 +37,7 @@ describe('Logger', () => {
         });
 
         it('should log info messages', () => {
+            testLogger.setLevel(LogLevel.DEBUG); // Enable full format
             testLogger.info('Test info message');
             expect(consoleLogSpy).toHaveBeenCalled();
             expect(consoleLogSpy.mock.calls[0][0]).toContain('INFO');
@@ -70,6 +71,7 @@ describe('Logger', () => {
         });
 
         it('should include timestamp in log output', () => {
+            testLogger.setLevel(LogLevel.DEBUG); // Enable full format with timestamp
             testLogger.info('Timestamped message');
             expect(consoleLogSpy).toHaveBeenCalled();
             // ISO timestamp format check
