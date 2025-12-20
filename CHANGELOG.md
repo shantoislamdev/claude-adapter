@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Tool Call ID Format**: Fixed 400 errors by generating compliant 9-character alphanumeric IDs when repairing duplicate tool_use IDs in conversation history
+- **Tool Call ID Handling**: Removed ID repair logic that was incorrectly modifying tool_use IDs on each request, causing tool_use/result pairing failures across conversation turns
 
 ## [1.1.1] - 2025-12-20
 

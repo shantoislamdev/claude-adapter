@@ -495,8 +495,8 @@ describe('Request Converter', () => {
         });
     });
 
-    describe('Duplicate tool ID repair', () => {
-        it('should handle duplicate tool_use IDs in conversation', () => {
+    describe('Tool ID handling', () => {
+        it('should pass through tool_use IDs unchanged', () => {
             const anthropicRequest: AnthropicMessageRequest = {
                 model: 'claude-4.5-sonnet',
                 max_tokens: 1024,
@@ -506,7 +506,7 @@ describe('Request Converter', () => {
                         role: 'assistant',
                         content: [{
                             type: 'tool_use',
-                            id: 'toolu_duplicate',
+                            id: 'toolu_abc123',
                             name: 'get_data',
                             input: { query: 'first' }
                         }]
@@ -515,44 +515,24 @@ describe('Request Converter', () => {
                         role: 'user',
                         content: [{
                             type: 'tool_result',
-                            tool_use_id: 'toolu_duplicate',
+                            tool_use_id: 'toolu_abc123',
                             content: 'First result'
-                        }]
-                    },
-                    { role: 'user', content: 'Second request' },
-                    {
-                        role: 'assistant',
-                        content: [{
-                            type: 'tool_use',
-                            id: 'toolu_duplicate', // Same ID - should be repaired
-                            name: 'get_data',
-                            input: { query: 'second' }
-                        }]
-                    },
-                    {
-                        role: 'user',
-                        content: [{
-                            type: 'tool_result',
-                            tool_use_id: 'toolu_duplicate',
-                            content: 'Second result'
                         }]
                     }
                 ]
             };
 
-            // This should not throw - IDs should be repaired
             const result = convertRequestToOpenAI(anthropicRequest, 'gpt-4');
 
             // Should have all messages converted
             expect(result.messages.length).toBeGreaterThan(0);
 
-            // Check that tool calls have unique IDs
+            // Check that tool call ID is preserved
             const toolCalls = result.messages
                 .filter((m: any) => m.tool_calls)
                 .flatMap((m: any) => m.tool_calls);
 
-            const uniqueIds = new Set(toolCalls.map((tc: any) => tc.id));
-            expect(uniqueIds.size).toBe(toolCalls.length);
+            expect(toolCalls[0].id).toBe('toolu_abc123');
         });
     });
 });
