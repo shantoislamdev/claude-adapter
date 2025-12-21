@@ -107,4 +107,10 @@ export class UI {
         });
         this.log('');
     }
+
+    static updateNotify(current: string, latest: string) {
+        this.log('');
+        this.log(`${chalk.hex(Palette.Dim)('•')} ${chalk.hex(Palette.Text)('Update available:')} ${chalk.hex(Palette.Dim)(current)} ${chalk.hex(Palette.Dim)('→')} ${chalk.hex(Palette.Highlight)(latest)}`);
+        this.hint('Run "npm i -g claude-adapter" to update');
+    }
 }
