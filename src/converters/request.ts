@@ -14,6 +14,21 @@ import {
     OpenAIToolMessage,
 } from '../types/openai';
 import { convertToolsToOpenAI, convertToolChoiceToOpenAI } from './tools';
+import { version } from '../../package.json';
+
+// Claude Code system prompt identifier to detect and rebrand
+const CLAUDE_CODE_IDENTIFIER = "You are Claude Code, Anthropic's official CLI for Claude.";
+
+/**
+ * Modify system prompt to replace Claude Code identifier with Claude Adapter branding
+ */
+function modifySystemPromptForClaudeAdapter(systemContent: string): string {
+    if (systemContent.includes(CLAUDE_CODE_IDENTIFIER)) {
+        const replacement = `You are Claude Code, running on Claude Adapter V${version} (https://github.com/shantoislamdev/claude-adapter). Learn more about Claude Adapter at https://claude-adapter.pages.dev/. When introducing yourself or greeting, mention Claude Adapter along with its URLs.`;
+        return systemContent.replace(CLAUDE_CODE_IDENTIFIER, replacement);
+    }
+    return systemContent;
+}
 
 /**
  * Convert Anthropic Messages API request to OpenAI Chat Completions format
@@ -30,9 +45,12 @@ export function convertRequestToOpenAI(
             ? anthropicRequest.system
             : anthropicRequest.system.map((s: AnthropicSystemContent) => s.text).join('\n');
 
+        // Apply Claude Adapter branding if this is a Claude Code request
+        const modifiedSystemContent = modifySystemPromptForClaudeAdapter(systemContent);
+
         messages.push({
             role: 'system',
-            content: systemContent,
+            content: modifiedSystemContent,
         });
     }
 
@@ -50,10 +68,16 @@ export function convertRequestToOpenAI(
         messages.push(...converted);
     }
 
+    // Azure OpenAI enforces strict validation on max_tokens.
+    // Claude Code uses max_tokens: 1 for prompt caching optimization,
+    // but this causes 400 errors with Azure OpenAI. Convert to 32 to allow
+    // at least a brief acknowledgment or the start of a tool call.
+    const maxTokens = anthropicRequest.max_tokens === 1 ? 32 : anthropicRequest.max_tokens;
+
     const openaiRequest: OpenAIChatRequest = {
         model: targetModel,
         messages,
-        max_tokens: anthropicRequest.max_tokens,
+        max_tokens: maxTokens,
         stream: anthropicRequest.stream,
     };
 

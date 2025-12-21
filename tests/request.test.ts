@@ -535,4 +535,62 @@ describe('Request Converter', () => {
             expect(toolCalls[0].id).toBe('toolu_abc123');
         });
     });
+
+    describe('Claude Code system prompt modification', () => {
+        it('should replace Claude Code identifier with Claude Adapter branding', () => {
+            const anthropicRequest: AnthropicMessageRequest = {
+                model: 'claude-4.5-sonnet',
+                max_tokens: 1024,
+                system: "You are Claude Code, Anthropic's official CLI for Claude. Here are more instructions.",
+                messages: [
+                    { role: 'user', content: 'Hello' }
+                ]
+            };
+
+            const result = convertRequestToOpenAI(anthropicRequest, 'gpt-4');
+
+            expect(result.messages[0].role).toBe('system');
+            expect(result.messages[0].content).toContain('Claude Adapter');
+            expect(result.messages[0].content).toContain('https://github.com/shantoislamdev/claude-adapter');
+            expect(result.messages[0].content).toContain('https://claude-adapter.pages.dev/');
+            expect(result.messages[0].content).toContain('Here are more instructions.');
+            expect(result.messages[0].content).not.toContain("Anthropic's official CLI");
+        });
+
+        it('should preserve system prompts that do not contain Claude Code identifier', () => {
+            const anthropicRequest: AnthropicMessageRequest = {
+                model: 'claude-4.5-sonnet',
+                max_tokens: 1024,
+                system: 'You are a helpful coding assistant.',
+                messages: [
+                    { role: 'user', content: 'Hello' }
+                ]
+            };
+
+            const result = convertRequestToOpenAI(anthropicRequest, 'gpt-4');
+
+            expect(result.messages[0].role).toBe('system');
+            expect(result.messages[0].content).toBe('You are a helpful coding assistant.');
+        });
+
+        it('should handle system prompt as array with Claude Code identifier', () => {
+            const anthropicRequest: AnthropicMessageRequest = {
+                model: 'claude-4.5-sonnet',
+                max_tokens: 1024,
+                system: [
+                    { type: 'text', text: "You are Claude Code, Anthropic's official CLI for Claude." },
+                    { type: 'text', text: 'Additional context here.' }
+                ],
+                messages: [
+                    { role: 'user', content: 'Hello' }
+                ]
+            };
+
+            const result = convertRequestToOpenAI(anthropicRequest, 'gpt-4');
+
+            expect(result.messages[0].role).toBe('system');
+            expect(result.messages[0].content).toContain('Claude Adapter');
+            expect(result.messages[0].content).toContain('Additional context here.');
+        });
+    });
 });
