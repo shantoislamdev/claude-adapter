@@ -119,3 +119,23 @@ export async function checkForUpdates(): Promise<UpdateInfo | null> {
         return null;
     }
 }
+
+/**
+ * Get cached update info synchronously (for use in request converter)
+ * Returns null if cache doesn't exist or is expired
+ */
+export function getCachedUpdateInfo(): UpdateInfo | null {
+    try {
+        const cache = loadCache();
+        if (cache && isCacheValid(cache)) {
+            return {
+                current: currentVersion,
+                latest: cache.version,
+                hasUpdate: cache.version !== currentVersion
+            };
+        }
+    } catch {
+        // Ignore errors
+    }
+    return null;
+}
