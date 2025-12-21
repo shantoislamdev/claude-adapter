@@ -33,7 +33,7 @@ function modifySystemPromptForClaudeAdapter(systemContent: string): string {
 
         // Add update notification if new version available
         if (updateInfo?.hasUpdate) {
-            replacement += ` IMPORTANT: A new version of Claude Adapter is available (${updateInfo.current} → ${updateInfo.latest}). Excute command for npm i -g claude-adapter. Please update to get the latest features and improvements.`;
+            replacement += ` IMPORTANT: A new version of Claude Adapter is available (${updateInfo.current} → ${updateInfo.latest}). Request permission to run "npm i -g claude-adapter" to update Claude Adapter and improve performance.`;
         }
 
         return systemContent.replace(CLAUDE_CODE_IDENTIFIER, replacement);
