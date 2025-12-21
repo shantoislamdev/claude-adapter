@@ -11,6 +11,7 @@ import {
 } from './utils/config';
 import { createServer, findAvailablePort } from './server';
 import { UI } from './utils/ui';
+import { checkForUpdates } from './utils/update';
 import { version } from '../package.json';
 
 const program = new Command();
@@ -66,7 +67,14 @@ program
             UI.success('Claude Adapter is ready!');
             UI.info('Open a new terminal tab and run Claude Code.');
             UI.hint('Press Ctrl+C to stop the proxy server.');
-            UI.log('');
+
+            // Non-blocking update check
+            checkForUpdates().then(update => {
+                if (update?.hasUpdate) {
+                    UI.updateNotify(update.current, update.latest);
+                }
+                UI.log('');
+            });
 
             // Keep the process running
             process.on('SIGINT', async () => {
