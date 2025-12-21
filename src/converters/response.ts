@@ -44,6 +44,7 @@ export function convertResponseToAnthropic(
     const usage: AnthropicUsage = {
         input_tokens: openaiResponse.usage.prompt_tokens,
         output_tokens: openaiResponse.usage.completion_tokens,
+        cache_read_input_tokens: openaiResponse.usage.prompt_tokens_details?.cached_tokens,
     };
 
     return {

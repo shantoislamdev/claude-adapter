@@ -46,6 +46,7 @@ interface StreamingState {
     }>;
     inputTokens: number;
     outputTokens: number;
+    cachedInputTokens: number;
     hasStarted: boolean;
     textContent: string;
 }
@@ -65,6 +66,7 @@ export async function streamOpenAIToAnthropic(
         currentToolCalls: new Map(),
         inputTokens: 0,
         outputTokens: 0,
+        cachedInputTokens: 0,
         hasStarted: false,
         textContent: '',
     };
@@ -128,6 +130,7 @@ function processChunk(
     if (chunk.usage) {
         state.inputTokens = chunk.usage.prompt_tokens;
         state.outputTokens = chunk.usage.completion_tokens;
+        state.cachedInputTokens = chunk.usage.prompt_tokens_details?.cached_tokens ?? 0;
     }
 
     // Handle finish reason
@@ -211,6 +214,7 @@ function sendMessageStart(state: StreamingState, raw: any): void {
             usage: {
                 input_tokens: state.inputTokens,
                 output_tokens: state.outputTokens,
+                cache_read_input_tokens: state.cachedInputTokens,
             },
         },
     };
@@ -291,6 +295,7 @@ function finishStream(state: StreamingState, raw: any): void {
         },
         usage: {
             output_tokens: state.outputTokens,
+            cache_read_input_tokens: state.cachedInputTokens,
         },
     };
     sendSSE(deltaEvent, raw);

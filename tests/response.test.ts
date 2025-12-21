@@ -31,6 +31,49 @@ describe('Response Converter', () => {
             expect(result.usage.output_tokens).toBe(15);
         });
 
+        it('should map cached_tokens to cache_read_input_tokens', () => {
+            const openaiResponse: OpenAIChatResponse = {
+                id: 'chatcmpl-cache',
+                object: 'chat.completion',
+                created: 1677652288,
+                model: 'gpt-4o',
+                choices: [{
+                    index: 0,
+                    message: { role: 'assistant', content: 'Hello!' },
+                    finish_reason: 'stop'
+                }],
+                usage: {
+                    prompt_tokens: 1000,
+                    completion_tokens: 50,
+                    total_tokens: 1050,
+                    prompt_tokens_details: {
+                        cached_tokens: 800
+                    }
+                }
+            };
+
+            const result = convertResponseToAnthropic(openaiResponse, 'claude-4-sonnet');
+            expect(result.usage.cache_read_input_tokens).toBe(800);
+        });
+
+        it('should handle missing prompt_tokens_details gracefully', () => {
+            const openaiResponse: OpenAIChatResponse = {
+                id: 'chatcmpl-no-cache',
+                object: 'chat.completion',
+                created: 1677652288,
+                model: 'gpt-4',
+                choices: [{
+                    index: 0,
+                    message: { role: 'assistant', content: 'No cache' },
+                    finish_reason: 'stop'
+                }],
+                usage: { prompt_tokens: 100, completion_tokens: 20, total_tokens: 120 }
+            };
+
+            const result = convertResponseToAnthropic(openaiResponse, 'claude');
+            expect(result.usage.cache_read_input_tokens).toBeUndefined();
+        });
+
         it('should map stop finish_reason to end_turn', () => {
             const openaiResponse: OpenAIChatResponse = {
                 id: 'test',

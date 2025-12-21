@@ -273,6 +273,30 @@ describe('Streaming Converter', () => {
             expect(messageDelta!.data.usage.output_tokens).toBe(5);
         });
 
+        it('should include cached tokens in streaming usage events', async () => {
+            const mockRaw = new MockRawResponse();
+            const mockReply = { raw: mockRaw } as any;
+
+            const stream = createMockStream([
+                { choices: [{ delta: { content: 'Cached response' }, finish_reason: null }] },
+                {
+                    choices: [{ delta: {}, finish_reason: 'stop' }],
+                    usage: {
+                        prompt_tokens: 500,
+                        completion_tokens: 10,
+                        prompt_tokens_details: { cached_tokens: 400 }
+                    }
+                },
+            ]);
+
+            await streamOpenAIToAnthropic(stream as any, mockReply, 'claude-4-opus');
+
+            const events = mockRaw.getEvents();
+            const messageDelta = events.find(e => e.data.type === 'message_delta');
+
+            expect(messageDelta!.data.usage.cache_read_input_tokens).toBe(400);
+        });
+
         it('should handle stream errors gracefully', async () => {
             const mockRaw = new MockRawResponse();
             const mockReply = { raw: mockRaw } as any;
