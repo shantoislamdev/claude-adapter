@@ -8,6 +8,7 @@ import { convertResponseToAnthropic, createErrorResponse } from '../converters/r
 import { streamOpenAIToAnthropic } from '../converters/streaming';
 import { validateAnthropicRequest, formatValidationErrors } from '../utils/validation';
 import { logger, RequestLogger } from '../utils/logger';
+import { recordUsage } from '../utils/tokenUsage';
 
 // Request ID counter for unique identification
 let requestIdCounter = 0;
@@ -16,7 +17,7 @@ function generateRequestId(): string {
     requestIdCounter++;
     const timestamp = Date.now().toString(36);
     const counter = requestIdCounter.toString(36).padStart(4, '0');
-    return `req_${timestamp}_${counter}`;
+    return `req_${timestamp}_${counter} `;
 }
 
 /**
@@ -56,9 +57,9 @@ export function createMessagesHandler(config: AdapterConfig) {
             const openaiRequest = convertRequestToOpenAI(anthropicRequest, targetModel);
 
             if (isStreaming) {
-                await handleStreamingRequest(openai, openaiRequest, reply, anthropicRequest.model, log);
+                await handleStreamingRequest(openai, openaiRequest, reply, anthropicRequest.model, config.baseUrl, log);
             } else {
-                await handleNonStreamingRequest(openai, openaiRequest, reply, anthropicRequest.model, log);
+                await handleNonStreamingRequest(openai, openaiRequest, reply, anthropicRequest.model, config.baseUrl, log);
             }
 
             log.info(`← ${targetModel} [received]`);
@@ -76,6 +77,7 @@ async function handleNonStreamingRequest(
     openaiRequest: any,
     reply: FastifyReply,
     originalModel: string,
+    provider: string,
     log: RequestLogger
 ): Promise<void> {
     log.debug('Making non-streaming request');
@@ -90,6 +92,19 @@ async function handleNonStreamingRequest(
         usage: response.usage
     });
 
+    // Record token usage
+    if (response.usage) {
+        recordUsage({
+            provider,
+            modelName: originalModel,
+            model: response.model,
+            inputTokens: response.usage.prompt_tokens,
+            outputTokens: response.usage.completion_tokens,
+            cachedInputTokens: response.usage.prompt_tokens_details?.cached_tokens,
+            streaming: false
+        });
+    }
+
     const anthropicResponse = convertResponseToAnthropic(response as any, originalModel);
     reply.send(anthropicResponse);
 }
@@ -102,6 +117,7 @@ async function handleStreamingRequest(
     openaiRequest: any,
     reply: FastifyReply,
     originalModel: string,
+    provider: string,
     log: RequestLogger
 ): Promise<void> {
     log.debug('Making streaming request');
@@ -111,7 +127,7 @@ async function handleStreamingRequest(
         stream: true,
     } as OpenAI.ChatCompletionCreateParamsStreaming);
 
-    await streamOpenAIToAnthropic(stream as any, reply, originalModel);
+    await streamOpenAIToAnthropic(stream as any, reply, originalModel, provider);
     log.debug('Streaming completed');
 }
 

@@ -1,6 +1,11 @@
 // Tests for streaming converter functions
 import { EventEmitter } from 'events';
 
+// Mock tokenUsage to prevent tests from writing to real files
+jest.mock('../src/utils/tokenUsage', () => ({
+    recordUsage: jest.fn()
+}));
+
 // Mock raw response for SSE
 class MockRawResponse {
     public chunks: string[] = [];

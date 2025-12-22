@@ -7,6 +7,7 @@ import {
 } from '../types/anthropic';
 import { OpenAIStreamChunk, OpenAIStreamToolCall } from '../types/openai';
 import { generateToolUseId } from './tools';
+import { recordUsage } from '../utils/tokenUsage';
 
 // Global counter and set for unique tool IDs within this process
 let toolIdCounter = 0;
@@ -38,6 +39,8 @@ function generateUniqueToolId(): string {
 interface StreamingState {
     messageId: string;
     model: string;
+    responseModel: string;
+    provider: string;
     contentBlockIndex: number;
     currentToolCalls: Map<number, {
         id: string;
@@ -57,11 +60,14 @@ interface StreamingState {
 export async function streamOpenAIToAnthropic(
     openaiStream: Stream<OpenAIStreamChunk>,
     reply: FastifyReply,
-    originalModel: string
+    originalModel: string,
+    provider: string = ''
 ): Promise<void> {
     const state: StreamingState = {
         messageId: `msg_${Date.now().toString(36)}`,
         model: originalModel,
+        responseModel: '',
+        provider,
         contentBlockIndex: 0,
         currentToolCalls: new Map(),
         inputTokens: 0,
@@ -131,6 +137,11 @@ function processChunk(
         state.inputTokens = chunk.usage.prompt_tokens;
         state.outputTokens = chunk.usage.completion_tokens;
         state.cachedInputTokens = chunk.usage.prompt_tokens_details?.cached_tokens ?? 0;
+    }
+
+    // Capture response model from chunk
+    if (chunk.model && !state.responseModel) {
+        state.responseModel = chunk.model;
     }
 
     // Handle finish reason
@@ -285,6 +296,17 @@ function finishStream(state: StreamingState, raw: any): void {
     // Determine stop reason
     const hasToolCalls = state.currentToolCalls.size > 0;
     const stopReason = hasToolCalls ? 'tool_use' : 'end_turn';
+
+    // Record token usage
+    recordUsage({
+        provider: state.provider,
+        modelName: state.model,
+        model: state.responseModel || undefined,
+        inputTokens: state.inputTokens,
+        outputTokens: state.outputTokens,
+        cachedInputTokens: state.cachedInputTokens || undefined,
+        streaming: true
+    });
 
     // Send message_delta
     const deltaEvent = {
