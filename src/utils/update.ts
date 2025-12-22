@@ -1,8 +1,6 @@
 import https from 'https';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
-import { homedir } from 'os';
-import { join } from 'path';
 import { version as currentVersion } from '../../package.json';
+import { getCachedLatestVersion, updateLatestVersion } from './metadata';
 
 export interface UpdateInfo {
     current: string;
@@ -10,53 +8,13 @@ export interface UpdateInfo {
     hasUpdate: boolean;
 }
 
-interface VersionCache {
-    version: string;
-    timestamp: number;
-}
-
-const CACHE_DIR = join(homedir(), '.claude-adapter');
-const CACHE_FILE = join(CACHE_DIR, 'version.json');
 const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
 /**
- * Load cached version info
+ * Check if cached version is still valid (within 24 hours)
  */
-function loadCache(): VersionCache | null {
-    try {
-        if (existsSync(CACHE_FILE)) {
-            const data = readFileSync(CACHE_FILE, 'utf-8');
-            return JSON.parse(data);
-        }
-    } catch {
-        // Ignore cache read errors
-    }
-    return null;
-}
-
-/**
- * Save version to cache
- */
-function saveCache(version: string): void {
-    try {
-        if (!existsSync(CACHE_DIR)) {
-            mkdirSync(CACHE_DIR, { recursive: true });
-        }
-        const cache: VersionCache = {
-            version,
-            timestamp: Date.now()
-        };
-        writeFileSync(CACHE_FILE, JSON.stringify(cache, null, 2));
-    } catch {
-        // Ignore cache write errors
-    }
-}
-
-/**
- * Check if cache is still valid (within 24 hours)
- */
-function isCacheValid(cache: VersionCache): boolean {
-    return Date.now() - cache.timestamp < CACHE_TTL;
+function isCacheValid(timestamp: number): boolean {
+    return Date.now() - timestamp < CACHE_TTL;
 }
 
 /**
@@ -92,8 +50,8 @@ function fetchLatestVersion(): Promise<string | null> {
 export async function checkForUpdates(): Promise<UpdateInfo | null> {
     try {
         // Check cache first
-        const cache = loadCache();
-        if (cache && isCacheValid(cache)) {
+        const cache = getCachedLatestVersion();
+        if (cache && isCacheValid(cache.timestamp)) {
             return {
                 current: currentVersion,
                 latest: cache.version,
@@ -107,8 +65,8 @@ export async function checkForUpdates(): Promise<UpdateInfo | null> {
             return null;
         }
 
-        // Update cache
-        saveCache(latest);
+        // Update cache in metadata
+        updateLatestVersion(latest);
 
         return {
             current: currentVersion,
@@ -126,8 +84,8 @@ export async function checkForUpdates(): Promise<UpdateInfo | null> {
  */
 export function getCachedUpdateInfo(): UpdateInfo | null {
     try {
-        const cache = loadCache();
-        if (cache && isCacheValid(cache)) {
+        const cache = getCachedLatestVersion();
+        if (cache && isCacheValid(cache.timestamp)) {
             return {
                 current: currentVersion,
                 latest: cache.version,

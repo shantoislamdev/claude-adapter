@@ -12,6 +12,7 @@ import {
 import { createServer, findAvailablePort } from './server';
 import { UI } from './utils/ui';
 import { checkForUpdates } from './utils/update';
+import { getMetadata } from './utils/metadata';
 import { version } from '../package.json';
 
 const program = new Command();
@@ -29,6 +30,9 @@ program
         UI.header('Adapt any model for Claude Code');
 
         try {
+            // Initialize metadata (creates metadata.json on first run)
+            getMetadata();
+
             // Step 1: Update ~/.claude.json for onboarding skip
             updateClaudeJson();
             UI.statusDone(true, 'Initialized Claude Adapter');
