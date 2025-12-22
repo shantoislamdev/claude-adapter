@@ -1,6 +1,15 @@
 // Tests for request handler utilities
 import { FastifyReply } from 'fastify';
 
+// Mock file storage utilities to prevent tests from writing to real files
+jest.mock('../src/utils/tokenUsage', () => ({
+    recordUsage: jest.fn()
+}));
+
+jest.mock('../src/utils/errorLog', () => ({
+    recordError: jest.fn()
+}));
+
 // Import the handlers module to test generateRequestId
 // We need to access internal functions, so we'll test through the exported module
 const handlersModule = require('../src/server/handlers');

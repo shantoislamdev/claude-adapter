@@ -6,6 +6,11 @@ jest.mock('../src/utils/tokenUsage', () => ({
     recordUsage: jest.fn()
 }));
 
+// Mock errorLog to prevent tests from writing to real files
+jest.mock('../src/utils/errorLog', () => ({
+    recordError: jest.fn()
+}));
+
 // Mock raw response for SSE
 class MockRawResponse {
     public chunks: string[] = [];

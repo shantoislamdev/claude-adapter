@@ -9,6 +9,7 @@ import { streamOpenAIToAnthropic } from '../converters/streaming';
 import { validateAnthropicRequest, formatValidationErrors } from '../utils/validation';
 import { logger, RequestLogger } from '../utils/logger';
 import { recordUsage } from '../utils/tokenUsage';
+import { recordError } from '../utils/errorLog';
 
 // Request ID counter for unique identification
 let requestIdCounter = 0;
@@ -64,7 +65,13 @@ export function createMessagesHandler(config: AdapterConfig) {
 
             log.info(`← ${targetModel} [received]`);
         } catch (error) {
-            handleError(error as Error, reply, log);
+            const body = request.body as any;
+            handleError(error as Error, reply, log, {
+                requestId,
+                provider: config.baseUrl,
+                modelName: body?.model ?? 'unknown',
+                streaming: body?.stream ?? false
+            });
         }
     };
 }
@@ -134,7 +141,12 @@ async function handleStreamingRequest(
 /**
  * Handle errors and send appropriate response
  */
-function handleError(error: Error, reply: FastifyReply, log: RequestLogger): void {
+function handleError(
+    error: Error,
+    reply: FastifyReply,
+    log: RequestLogger,
+    context?: { requestId: string; provider: string; modelName: string; streaming: boolean }
+): void {
     let statusCode = 500;
 
     // Try to extract status code from OpenAI error
@@ -143,6 +155,11 @@ function handleError(error: Error, reply: FastifyReply, log: RequestLogger): voi
     }
 
     log.error('Request failed', error, { statusCode });
+
+    // Record error to file if context is available
+    if (context) {
+        recordError(error, context);
+    }
 
     const errorResponse = createErrorResponse(error, statusCode);
     reply.code(errorResponse.status).send({ error: errorResponse.error });

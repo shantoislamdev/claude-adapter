@@ -8,6 +8,7 @@ import {
 import { OpenAIStreamChunk, OpenAIStreamToolCall } from '../types/openai';
 import { generateToolUseId } from './tools';
 import { recordUsage } from '../utils/tokenUsage';
+import { recordError } from '../utils/errorLog';
 
 // Global counter and set for unique tool IDs within this process
 let toolIdCounter = 0;
@@ -94,7 +95,7 @@ export async function streamOpenAIToAnthropic(
         // Send final events
         finishStream(state, raw);
     } catch (error) {
-        sendErrorEvent(error as Error, raw);
+        sendErrorEvent(error as Error, state, raw);
     }
 }
 
@@ -328,7 +329,15 @@ function finishStream(state: StreamingState, raw: any): void {
     raw.end();
 }
 
-function sendErrorEvent(error: Error, raw: any): void {
+function sendErrorEvent(error: Error, state: StreamingState, raw: any): void {
+    // Record error to file
+    recordError(error, {
+        requestId: state.messageId,
+        provider: state.provider,
+        modelName: state.model,
+        streaming: true
+    });
+
     const event = {
         type: 'error',
         error: {
