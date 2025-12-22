@@ -534,6 +534,102 @@ describe('Request Converter', () => {
 
             expect(toolCalls[0].id).toBe('toolu_abc123');
         });
+
+        it('should generate unique ID for duplicate tool_use IDs (long IDs)', () => {
+            const anthropicRequest: AnthropicMessageRequest = {
+                model: 'claude-4.5-sonnet',
+                max_tokens: 1024,
+                messages: [
+                    { role: 'user', content: 'First request' },
+                    {
+                        role: 'assistant',
+                        content: [{
+                            type: 'tool_use',
+                            id: 'toolu_duplicate_long_id',
+                            name: 'get_data',
+                            input: { query: 'first' }
+                        }]
+                    },
+                    {
+                        role: 'user',
+                        content: [{
+                            type: 'tool_result',
+                            tool_use_id: 'toolu_duplicate_long_id',
+                            content: 'First result'
+                        }]
+                    },
+                    { role: 'user', content: 'Second request' },
+                    {
+                        role: 'assistant',
+                        content: [{
+                            type: 'tool_use',
+                            id: 'toolu_duplicate_long_id',
+                            name: 'get_data',
+                            input: { query: 'second' }
+                        }]
+                    }
+                ]
+            };
+
+            const result = convertRequestToOpenAI(anthropicRequest, 'gpt-4');
+
+            const toolCalls = result.messages
+                .filter((m: any) => m.tool_calls)
+                .flatMap((m: any) => m.tool_calls);
+
+            // First and second tool call should have different IDs
+            expect(toolCalls.length).toBe(2);
+            expect(toolCalls[0].id).not.toBe(toolCalls[1].id);
+        });
+
+        it('should generate unique ID for duplicate tool_use IDs (short IDs)', () => {
+            const anthropicRequest: AnthropicMessageRequest = {
+                model: 'claude-4.5-sonnet',
+                max_tokens: 1024,
+                messages: [
+                    { role: 'user', content: 'First request' },
+                    {
+                        role: 'assistant',
+                        content: [{
+                            type: 'tool_use',
+                            id: 'short_id',
+                            name: 'get_data',
+                            input: { query: 'first' }
+                        }]
+                    },
+                    {
+                        role: 'user',
+                        content: [{
+                            type: 'tool_result',
+                            tool_use_id: 'short_id',
+                            content: 'First result'
+                        }]
+                    },
+                    { role: 'user', content: 'Second request' },
+                    {
+                        role: 'assistant',
+                        content: [{
+                            type: 'tool_use',
+                            id: 'short_id',
+                            name: 'get_data',
+                            input: { query: 'second' }
+                        }]
+                    }
+                ]
+            };
+
+            const result = convertRequestToOpenAI(anthropicRequest, 'gpt-4');
+
+            const toolCalls = result.messages
+                .filter((m: any) => m.tool_calls)
+                .flatMap((m: any) => m.tool_calls);
+
+            // First and second tool call should have different IDs
+            expect(toolCalls.length).toBe(2);
+            expect(toolCalls[0].id).not.toBe(toolCalls[1].id);
+            // Short IDs should maintain similar length
+            expect(toolCalls[1].id.length).toBe('short_id'.length);
+        });
     });
 
     describe('Claude Code system prompt modification', () => {

@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2025-12-22
+
+### Added
+
+- **Token Usage Logging**: Track API usage in `~/.claude-adapter/token_usage/YYYY-MM-DD.jsonl` with modelName, actual model, input/output tokens, cached tokens
+- **Error Logging**: Store API errors in `~/.claude-adapter/error_logs/YYYY-MM-DD.jsonl` with full error details (skips 401, 402, 404, 429)
+- **Metadata Storage**: Create `~/.claude-adapter/metadata.json` on first run with unique userId, platform, platformRelease, and version info
+- **Update Notifier**: CLI checks npm registry for new versions with 24-hour caching
+- **Smart Update Prompts**: When a new version is available, Claude Code is instructed to prompt users to run `npm i -g claude-adapter`
+
+### Improved
+
+- Shared `fileStorage.ts` utility for race-safe JSON Lines writes
+- Zero-dependency update checking using native `https` module
+- Non-blocking update checks with 3-second timeout
+
 ## [1.1.5] - 2025-12-21
 
 ### Fixed
@@ -92,7 +108,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-[Unreleased]: https://github.com/shantoislamdev/claude-adapter/compare/v1.1.5...HEAD
+[Unreleased]: https://github.com/shantoislamdev/claude-adapter/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/shantoislamdev/claude-adapter/compare/v1.1.5...v1.2.0
 [1.1.5]: https://github.com/shantoislamdev/claude-adapter/compare/v1.1.4...v1.1.5
 [1.1.4]: https://github.com/shantoislamdev/claude-adapter/compare/v1.1.3...v1.1.4
 [1.1.3]: https://github.com/shantoislamdev/claude-adapter/compare/v1.1.2...v1.1.3
