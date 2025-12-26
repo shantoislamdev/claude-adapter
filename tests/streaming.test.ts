@@ -283,6 +283,28 @@ describe('Streaming Converter', () => {
             expect(messageDelta!.data.usage.output_tokens).toBe(5);
         });
 
+        it('should handle usage information from chunks with empty choices (standard OpenAI behavior)', async () => {
+            const mockRaw = new MockRawResponse();
+            const mockReply = { raw: mockRaw } as any;
+
+            const stream = createMockStream([
+                { choices: [{ delta: { content: 'Test' }, finish_reason: null }] },
+                {
+                    choices: [],
+                    usage: { prompt_tokens: 20, completion_tokens: 10 }
+                },
+            ]);
+
+            await streamOpenAIToAnthropic(stream as any, mockReply, 'claude-4-opus');
+
+            const events = mockRaw.getEvents();
+            const messageDelta = events.find(e => e.data.type === 'message_delta');
+
+            // This should fail if the bug exists
+            expect(messageDelta!.data.usage.output_tokens).toBe(10);
+            expect(messageDelta!.data.usage.input_tokens).toBe(undefined); // input_tokens is not in message_delta usage, checking side effect
+        });
+
         it('should include cached tokens in streaming usage events', async () => {
             const mockRaw = new MockRawResponse();
             const mockReply = { raw: mockRaw } as any;

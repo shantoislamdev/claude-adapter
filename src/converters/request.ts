@@ -92,6 +92,11 @@ export function convertRequestToOpenAI(
         stream: anthropicRequest.stream,
     };
 
+    // specific handling for streaming requests to include usage data
+    if (anthropicRequest.stream) {
+        openaiRequest.stream_options = { include_usage: true };
+    }
+
     // Optional parameters
     if (anthropicRequest.temperature !== undefined) {
         openaiRequest.temperature = anthropicRequest.temperature;

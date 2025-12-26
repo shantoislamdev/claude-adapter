@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.1] - 2025-12-26
+
+### Fixed
+
+- **Streaming Token Usage**: Fixed a critical bug where token usage was reported as 0 in streaming responses.
+    - Added `stream_options: { include_usage: true }` to OpenAI requests (required for newer provider versions)
+    - Fixed chunk processing logic to correctly parse usage data even when it arrives in a chunk with empty/missing `choices` (common end-of-stream behavior)
+- **Version Comparison**: Fixed an issue where older versions (e.g. 1.1.5) were incorrectly identified as updates over newer versions (e.g. 1.2.0) due to string comparison instead of semantic versioning
+
 ## [1.2.0] - 2025-12-22
 
 ### Added
@@ -108,7 +117,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-[Unreleased]: https://github.com/shantoislamdev/claude-adapter/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/shantoislamdev/claude-adapter/compare/v1.2.1...HEAD
+[1.2.1]: https://github.com/shantoislamdev/claude-adapter/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/shantoislamdev/claude-adapter/compare/v1.1.5...v1.2.0
 [1.1.5]: https://github.com/shantoislamdev/claude-adapter/compare/v1.1.4...v1.1.5
 [1.1.4]: https://github.com/shantoislamdev/claude-adapter/compare/v1.1.3...v1.1.4

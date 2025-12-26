@@ -104,6 +104,18 @@ function processChunk(
     state: StreamingState,
     raw: any
 ): void {
+    // Update usage if present
+    if (chunk.usage) {
+        state.inputTokens = chunk.usage.prompt_tokens;
+        state.outputTokens = chunk.usage.completion_tokens;
+        state.cachedInputTokens = chunk.usage.prompt_tokens_details?.cached_tokens ?? 0;
+    }
+
+    // Capture response model from chunk
+    if (chunk.model && !state.responseModel) {
+        state.responseModel = chunk.model;
+    }
+
     const choice = chunk.choices[0];
     if (!choice) return;
 
@@ -131,18 +143,6 @@ function processChunk(
         for (const toolCall of delta.tool_calls) {
             processToolCallDelta(toolCall, state, raw);
         }
-    }
-
-    // Update usage if present
-    if (chunk.usage) {
-        state.inputTokens = chunk.usage.prompt_tokens;
-        state.outputTokens = chunk.usage.completion_tokens;
-        state.cachedInputTokens = chunk.usage.prompt_tokens_details?.cached_tokens ?? 0;
-    }
-
-    // Capture response model from chunk
-    if (chunk.model && !state.responseModel) {
-        state.responseModel = chunk.model;
     }
 
     // Handle finish reason

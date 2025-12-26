@@ -8,6 +8,9 @@ export interface OpenAIChatRequest {
     top_p?: number;
     n?: number;
     stream?: boolean;
+    stream_options?: {
+        include_usage: boolean;
+    };
     stop?: string | string[];
     presence_penalty?: number;
     frequency_penalty?: number;
