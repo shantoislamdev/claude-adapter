@@ -11,6 +11,23 @@ export interface UpdateInfo {
 const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
 /**
+ * Compare two semantic versions
+ * Returns true if latest is greater than current
+ */
+function isNewerVersion(latest: string, current: string): boolean {
+    const parseVersion = (v: string) => v.split('.').map(n => parseInt(n, 10) || 0);
+    const [latestParts, currentParts] = [parseVersion(latest), parseVersion(current)];
+
+    for (let i = 0; i < Math.max(latestParts.length, currentParts.length); i++) {
+        const l = latestParts[i] || 0;
+        const c = currentParts[i] || 0;
+        if (l > c) return true;
+        if (l < c) return false;
+    }
+    return false;
+}
+
+/**
  * Check if cached version is still valid (within 24 hours)
  */
 function isCacheValid(timestamp: number): boolean {
@@ -55,7 +72,7 @@ export async function checkForUpdates(): Promise<UpdateInfo | null> {
             return {
                 current: currentVersion,
                 latest: cache.version,
-                hasUpdate: cache.version !== currentVersion
+                hasUpdate: isNewerVersion(cache.version, currentVersion)
             };
         }
 
@@ -71,7 +88,7 @@ export async function checkForUpdates(): Promise<UpdateInfo | null> {
         return {
             current: currentVersion,
             latest,
-            hasUpdate: latest !== currentVersion
+            hasUpdate: isNewerVersion(latest, currentVersion)
         };
     } catch {
         return null;
@@ -89,7 +106,7 @@ export function getCachedUpdateInfo(): UpdateInfo | null {
             return {
                 current: currentVersion,
                 latest: cache.version,
-                hasUpdate: cache.version !== currentVersion
+                hasUpdate: isNewerVersion(cache.version, currentVersion)
             };
         }
     } catch {
