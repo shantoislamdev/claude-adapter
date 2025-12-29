@@ -56,7 +56,7 @@ export function createMessagesHandler(config: AdapterConfig) {
             log.info(`→ ${targetModel} [sent]`);
 
             // Determine tool calling style from config
-            const toolStyle = config.toolCallingStyle || 'native';
+            const toolStyle = config.toolFormat || 'native';
 
             // Convert request to OpenAI format
             const openaiRequest = convertRequestToOpenAI(anthropicRequest, targetModel, toolStyle);

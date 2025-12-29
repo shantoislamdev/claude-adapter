@@ -48,7 +48,7 @@ function modifySystemPromptForClaudeAdapter(systemContent: string): string {
 export function convertRequestToOpenAI(
     anthropicRequest: AnthropicMessageRequest,
     targetModel: string,
-    toolCallingStyle: 'native' | 'xml' = 'native'
+    toolFormat: 'native' | 'xml' = 'native'
 ): OpenAIChatRequest {
     const messages: OpenAIMessage[] = [];
 
@@ -68,7 +68,7 @@ export function convertRequestToOpenAI(
     }
 
     // XML mode: inject tool instructions into system prompt
-    if (toolCallingStyle === 'xml' && anthropicRequest.tools && anthropicRequest.tools.length > 0) {
+    if (toolFormat === 'xml' && anthropicRequest.tools && anthropicRequest.tools.length > 0) {
         const xmlInstructions = generateXmlToolInstructions(anthropicRequest.tools);
         if (messages.length > 0 && messages[0].role === 'system') {
             // Append to existing system message
@@ -90,7 +90,7 @@ export function convertRequestToOpenAI(
     // Convert messages with shared deduplication context
     // Convert messages with shared deduplication context
     for (const msg of anthropicRequest.messages) {
-        const converted = convertMessage(msg, idDeduplication, toolCallingStyle);
+        const converted = convertMessage(msg, idDeduplication, toolFormat);
         messages.push(...converted);
     }
 
@@ -118,7 +118,7 @@ export function convertRequestToOpenAI(
     }
 
     // XML mode: Force temperature=0 for deterministic output
-    if (toolCallingStyle === 'xml') {
+    if (toolFormat === 'xml') {
         openaiRequest.temperature = 0;
     }
     if (anthropicRequest.top_p !== undefined) {
@@ -131,10 +131,10 @@ export function convertRequestToOpenAI(
     // because some providers (e.g., Mistral) strictly reject unsupported parameters
 
     // Convert tools (only in native mode)
-    if (toolCallingStyle === 'native' && anthropicRequest.tools && anthropicRequest.tools.length > 0) {
+    if (toolFormat === 'native' && anthropicRequest.tools && anthropicRequest.tools.length > 0) {
         openaiRequest.tools = convertToolsToOpenAI(anthropicRequest.tools);
     }
-    if (toolCallingStyle === 'native' && anthropicRequest.tool_choice) {
+    if (toolFormat === 'native' && anthropicRequest.tool_choice) {
         openaiRequest.tool_choice = convertToolChoiceToOpenAI(anthropicRequest.tool_choice);
     }
 
@@ -181,7 +181,7 @@ interface IdDeduplicationContext {
 function convertMessage(
     msg: AnthropicMessage,
     ctx: IdDeduplicationContext,
-    toolCallingStyle: 'native' | 'xml'
+    toolFormat: 'native' | 'xml'
 ): OpenAIMessage[] {
     const result: OpenAIMessage[] = [];
 
@@ -202,7 +202,7 @@ function convertMessage(
         if (msg.role === 'user') {
             const { userContent, toolResults } = processUserContentBlocks(msg.content, ctx);
 
-            if (toolCallingStyle === 'xml') {
+            if (toolFormat === 'xml') {
                 // XML Mode: Flatten tool results into the user message text
                 let flatContent = '';
 
@@ -254,7 +254,7 @@ function convertMessage(
                 return result; // Return empty - skip this message
             }
 
-            if (toolCallingStyle === 'xml') {
+            if (toolFormat === 'xml') {
                 // XML Mode: Reconstruct XML tags from tool calls
                 let fullContent = textContent || '';
 
