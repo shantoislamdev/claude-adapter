@@ -44,6 +44,7 @@ program
                 UI.log(''); // Spacing
                 config = await promptForConfiguration();
                 saveConfig(config);
+                console.log(`\x1b[2m✔\x1b[0m Tool Format: ${UI.dim(`[${config.toolFormat?.toUpperCase() || 'NATIVE'}]`)}`);
                 UI.info('Creating Claude Adapter API...');
             } else if (config.toolFormat === undefined) {
                 // Existing config missing toolFormat - prompt only for that
@@ -51,9 +52,11 @@ program
                 const toolStyle = await promptForToolCallingStyle();
                 config.toolFormat = toolStyle;
                 saveConfig(config);
+                console.log(`\x1b[2m✔\x1b[0m Tool Format: ${UI.dim(`[${config.toolFormat.toUpperCase()}]`)}`);
                 UI.info('Tool calling preference saved');
             } else {
                 UI.info('Using existing configuration');
+                console.log(`\x1b[2m✔\x1b[0m Tool Format: ${UI.dim(`[${config.toolFormat.toUpperCase()}]`)}`);
             }
 
             // Step 3: Find available port and start server
@@ -222,7 +225,7 @@ async function promptForConfiguration(): Promise<AdapterConfig> {
         toolFormat = toolTypeAnswer.toolType as 'native' | 'xml';
     } else {
         // User selected "No" - auto-select xml
-        console.log(`${prefix} Tool Format: ${UI.dim('[XML]')}`);
+        console.log(`\x1b[32m✔\x1b[0m Tool Format: ${UI.dim('[XML]')}`);
         toolFormat = 'xml';
     }
 
@@ -272,7 +275,7 @@ async function promptForToolCallingStyle(): Promise<'native' | 'xml'> {
         return toolTypeAnswer.toolType as 'native' | 'xml';
     } else {
         // User selected "No" - auto-select xml
-        console.log(`${prefix} Tool Format: ${UI.dim('[XML]')}`);
+        console.log(`\x1b[32m✔\x1b[0m Tool Format: ${UI.dim('[XML]')}`);
         return 'xml';
     }
 }
