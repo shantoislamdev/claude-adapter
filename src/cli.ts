@@ -45,6 +45,13 @@ program
                 config = await promptForConfiguration();
                 saveConfig(config);
                 UI.info('Creating Claude Adapter API...');
+            } else if (config.toolCallingStyle === undefined) {
+                // Existing config missing toolCallingStyle - prompt only for that
+                UI.log(''); // Spacing
+                const toolStyle = await promptForToolCallingStyle();
+                config.toolCallingStyle = toolStyle;
+                saveConfig(config);
+                UI.info('Tool calling preference saved');
             } else {
                 UI.info('Using existing configuration');
             }
@@ -184,6 +191,21 @@ async function promptForConfiguration(): Promise<AdapterConfig> {
         console.log(`${prefix} Alternative model for Haiku: ${UI.dim(`[${sonnetModel}]`)}`);
     }
 
+    // Tool calling support prompt (after all models are entered)
+    const toolCallAnswer = await inquirer.prompt([{
+        type: 'list',
+        name: 'toolCallingStyle',
+        prefix,
+        message: 'Do your models support tool/function calling?',
+        choices: [
+            { name: 'Yes', value: 'native' },
+            { name: 'No (experimental)', value: 'xml' }
+        ],
+        default: 'native'
+    }]);
+
+    const toolCallingStyle = toolCallAnswer.toolCallingStyle as 'native' | 'xml';
+
     return {
         baseUrl: requiredAnswers.baseUrl.trim(),
         apiKey: requiredAnswers.apiKey.trim(),
@@ -192,8 +214,31 @@ async function promptForConfiguration(): Promise<AdapterConfig> {
             sonnet: sonnetModel,
             haiku: haikuModel,
         },
+        toolCallingStyle,
     };
+}
+
+/**
+ * Prompt only for tool calling style (for existing configs missing this field)
+ */
+async function promptForToolCallingStyle(): Promise<'native' | 'xml'> {
+    const prefix = UI.dim('?');
+
+    const answer = await inquirer.prompt([{
+        type: 'list',
+        name: 'toolCallingStyle',
+        prefix,
+        message: 'Do your models support tool/function calling?',
+        choices: [
+            { name: 'Yes', value: 'native' },
+            { name: 'No (experimental)', value: 'xml' }
+        ],
+        default: 'native'
+    }]);
+
+    return answer.toolCallingStyle as 'native' | 'xml';
 }
 
 // Run the CLI
 program.parse();
+

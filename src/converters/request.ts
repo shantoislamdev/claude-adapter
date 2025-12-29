@@ -14,6 +14,7 @@ import {
     OpenAIToolMessage,
 } from '../types/openai';
 import { convertToolsToOpenAI, convertToolChoiceToOpenAI } from './tools';
+import { generateXmlToolInstructions } from './xmlPrompt';
 import { getCachedUpdateInfo } from '../utils/update';
 import { version } from '../../package.json';
 
@@ -46,7 +47,8 @@ function modifySystemPromptForClaudeAdapter(systemContent: string): string {
  */
 export function convertRequestToOpenAI(
     anthropicRequest: AnthropicMessageRequest,
-    targetModel: string
+    targetModel: string,
+    toolCallingStyle: 'native' | 'xml' = 'native'
 ): OpenAIChatRequest {
     const messages: OpenAIMessage[] = [];
 
@@ -63,6 +65,18 @@ export function convertRequestToOpenAI(
             role: 'system',
             content: modifiedSystemContent,
         });
+    }
+
+    // XML mode: inject tool instructions into system prompt
+    if (toolCallingStyle === 'xml' && anthropicRequest.tools && anthropicRequest.tools.length > 0) {
+        const xmlInstructions = generateXmlToolInstructions(anthropicRequest.tools);
+        if (messages.length > 0 && messages[0].role === 'system') {
+            // Append to existing system message
+            messages[0].content += '\n\n' + xmlInstructions;
+        } else {
+            // Create new system message
+            messages.unshift({ role: 'system', content: xmlInstructions });
+        }
     }
 
     // Track tool ID deduplication across messages
@@ -101,6 +115,11 @@ export function convertRequestToOpenAI(
     if (anthropicRequest.temperature !== undefined) {
         openaiRequest.temperature = anthropicRequest.temperature;
     }
+
+    // XML mode: Force temperature=0 for deterministic output
+    if (toolCallingStyle === 'xml') {
+        openaiRequest.temperature = 0;
+    }
     if (anthropicRequest.top_p !== undefined) {
         openaiRequest.top_p = anthropicRequest.top_p;
     }
@@ -110,11 +129,11 @@ export function convertRequestToOpenAI(
     // Note: metadata.user_id is intentionally NOT mapped to OpenAI's 'user' field
     // because some providers (e.g., Mistral) strictly reject unsupported parameters
 
-    // Convert tools
-    if (anthropicRequest.tools && anthropicRequest.tools.length > 0) {
+    // Convert tools (only in native mode)
+    if (toolCallingStyle === 'native' && anthropicRequest.tools && anthropicRequest.tools.length > 0) {
         openaiRequest.tools = convertToolsToOpenAI(anthropicRequest.tools);
     }
-    if (anthropicRequest.tool_choice) {
+    if (toolCallingStyle === 'native' && anthropicRequest.tool_choice) {
         openaiRequest.tool_choice = convertToolChoiceToOpenAI(anthropicRequest.tool_choice);
     }
 
