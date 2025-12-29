@@ -45,11 +45,11 @@ program
                 config = await promptForConfiguration();
                 saveConfig(config);
                 UI.info('Creating Claude Adapter API...');
-            } else if (config.toolCallingStyle === undefined) {
-                // Existing config missing toolCallingStyle - prompt only for that
+            } else if (config.toolFormat === undefined) {
+                // Existing config missing toolFormat - prompt only for that
                 UI.log(''); // Spacing
                 const toolStyle = await promptForToolCallingStyle();
-                config.toolCallingStyle = toolStyle;
+                config.toolFormat = toolStyle;
                 saveConfig(config);
                 UI.info('Tool calling preference saved');
             } else {
@@ -192,19 +192,39 @@ async function promptForConfiguration(): Promise<AdapterConfig> {
     }
 
     // Tool calling support prompt (after all models are entered)
-    const toolCallAnswer = await inquirer.prompt([{
+    const toolSupportAnswer = await inquirer.prompt([{
         type: 'list',
-        name: 'toolCallingStyle',
+        name: 'supportsTools',
         prefix,
         message: 'Do your models support tool/function calling?',
         choices: [
-            { name: 'Yes', value: 'native' },
-            { name: 'No (experimental)', value: 'xml' }
+            { name: 'Yes', value: true },
+            { name: 'No', value: false }
         ],
-        default: 'native'
+        default: true
     }]);
 
-    const toolCallingStyle = toolCallAnswer.toolCallingStyle as 'native' | 'xml';
+    let toolFormat: 'native' | 'xml';
+
+    if (toolSupportAnswer.supportsTools) {
+        // User selected "Yes" - ask for tool type
+        const toolTypeAnswer = await inquirer.prompt([{
+            type: 'list',
+            name: 'toolType',
+            prefix,
+            message: 'Select tool/function type:',
+            choices: [
+                { name: 'XML (Recommended)', value: 'xml' },
+                { name: 'Native (Openai Format)', value: 'native' }
+            ],
+            default: 'xml'
+        }]);
+        toolFormat = toolTypeAnswer.toolType as 'native' | 'xml';
+    } else {
+        // User selected "No" - auto-select xml
+        console.log(`${prefix} Tool Format: ${UI.dim('[XML]')}`);
+        toolFormat = 'xml';
+    }
 
     return {
         baseUrl: requiredAnswers.baseUrl.trim(),
@@ -214,7 +234,7 @@ async function promptForConfiguration(): Promise<AdapterConfig> {
             sonnet: sonnetModel,
             haiku: haikuModel,
         },
-        toolCallingStyle,
+        toolFormat,
     };
 }
 
@@ -224,19 +244,37 @@ async function promptForConfiguration(): Promise<AdapterConfig> {
 async function promptForToolCallingStyle(): Promise<'native' | 'xml'> {
     const prefix = UI.dim('?');
 
-    const answer = await inquirer.prompt([{
+    const toolSupportAnswer = await inquirer.prompt([{
         type: 'list',
-        name: 'toolCallingStyle',
+        name: 'supportsTools',
         prefix,
         message: 'Do your models support tool/function calling?',
         choices: [
-            { name: 'Yes', value: 'native' },
-            { name: 'No (experimental)', value: 'xml' }
+            { name: 'Yes', value: true },
+            { name: 'No', value: false }
         ],
-        default: 'native'
+        default: true
     }]);
 
-    return answer.toolCallingStyle as 'native' | 'xml';
+    if (toolSupportAnswer.supportsTools) {
+        // User selected "Yes" - ask for tool type
+        const toolTypeAnswer = await inquirer.prompt([{
+            type: 'list',
+            name: 'toolType',
+            prefix,
+            message: 'Select tool/function type:',
+            choices: [
+                { name: 'XML (Recommended)', value: 'xml' },
+                { name: 'Native (Openai Format)', value: 'native' }
+            ],
+            default: 'xml'
+        }]);
+        return toolTypeAnswer.toolType as 'native' | 'xml';
+    } else {
+        // User selected "No" - auto-select xml
+        console.log(`${prefix} Tool Format: ${UI.dim('[XML]')}`);
+        return 'xml';
+    }
 }
 
 // Run the CLI
