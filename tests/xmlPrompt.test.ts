@@ -33,7 +33,7 @@ describe('XML Prompt Generator', () => {
             expect(result).toContain('Get the current weather');
             expect(result).toContain('<tool_code name="TOOL_NAME">');
             expect(result).toContain('</tool_code>');
-            expect(result).toContain('CRITICAL RULES');
+            expect(result).toContain('CRITICAL EXECUTION RULES');
             expect(result).toContain('Available Tools');
         });
 

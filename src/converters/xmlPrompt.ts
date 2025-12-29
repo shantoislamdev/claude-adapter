@@ -49,6 +49,10 @@ ANY deviation from this format will cause the tool call to fail.
 4. **No Nested Content**: The JSON parameters must be the direct child of \`tool_code\`. Do not nest another \`tool\` or \`function\` tag inside.
 5. **Thinking**: If you need to think or explain your reasoning, do so in text BEFORE the \`<tool_code>\` block. Do NOT put thoughts inside the tool code.
 6. **Multiple Tools**: You may call multiple tools in sequence by outputting multiple \`<tool_code>\` blocks.
+7. **Tool Outputs**: Tool results will be provided to you in the following format:
+<tool_output>
+{result_json_or_text}
+</tool_output>
 
 ## EXAMPLE (Correct):
 Thinking: I need to read the file.

@@ -88,8 +88,9 @@ export function convertRequestToOpenAI(
     };
 
     // Convert messages with shared deduplication context
+    // Convert messages with shared deduplication context
     for (const msg of anthropicRequest.messages) {
-        const converted = convertMessage(msg, idDeduplication);
+        const converted = convertMessage(msg, idDeduplication, toolCallingStyle);
         messages.push(...converted);
     }
 
@@ -163,7 +164,11 @@ interface IdDeduplicationContext {
  * Convert a single Anthropic message to OpenAI format
  * May return multiple messages (e.g., tool results become separate messages)
  */
-function convertMessage(msg: AnthropicMessage, ctx: IdDeduplicationContext): OpenAIMessage[] {
+function convertMessage(
+    msg: AnthropicMessage,
+    ctx: IdDeduplicationContext,
+    toolCallingStyle: 'native' | 'xml'
+): OpenAIMessage[] {
     const result: OpenAIMessage[] = [];
 
     if (typeof msg.content === 'string') {
@@ -183,38 +188,89 @@ function convertMessage(msg: AnthropicMessage, ctx: IdDeduplicationContext): Ope
         if (msg.role === 'user') {
             const { userContent, toolResults } = processUserContentBlocks(msg.content, ctx);
 
-            // Add tool results as separate tool messages
-            result.push(...toolResults);
+            if (toolCallingStyle === 'xml') {
+                // XML Mode: Flatten tool results into the user message text
+                let flatContent = '';
 
-            // Add user content if any
-            if (userContent.length > 0) {
-                result.push({
-                    role: 'user',
-                    content: userContent.length === 1 && userContent[0].type === 'text'
-                        ? userContent[0].text
-                        : userContent,
-                });
+                // Add regular user text
+                for (const part of userContent) {
+                    if (part.type === 'text') {
+                        flatContent += part.text;
+                    }
+                    // Images sent as text in XML mode (fallback) or omitted if not supported
+                    // For now, we only handle text
+                }
+
+                // Add tool results as XML blocks
+                if (toolResults.length > 0) {
+                    const xmlResults = toolResults.map(t =>
+                        `<tool_output>\n${t.content}\n</tool_output>`
+                    ).join('\n\n');
+
+                    if (flatContent) flatContent += '\n\n';
+                    flatContent += xmlResults;
+                }
+
+                if (flatContent) {
+                    result.push({ role: 'user', content: flatContent });
+                }
+            } else {
+                // Native Mode: Standard separation
+                // Add tool results as separate tool messages
+                result.push(...toolResults);
+
+                // Add user content if any
+                if (userContent.length > 0) {
+                    result.push({
+                        role: 'user',
+                        content: userContent.length === 1 && userContent[0].type === 'text'
+                            ? userContent[0].text
+                            : userContent,
+                    });
+                }
             }
         } else {
             // Assistant message with content blocks
+            // Note: We still use processAssistantContentBlocks for deduplication logic, 
+            // even if we don't use the tool_calls output in XML mode (to keep state consistent)
             const { textContent, toolCalls } = processAssistantContentBlocks(msg.content, ctx);
 
             // Skip assistant prefill messages when content is just a JSON starter
-            // These are Anthropic-specific and cause 400 errors with other providers
             if (toolCalls.length === 0 && textContent && isAssistantPrefill(textContent)) {
                 return result; // Return empty - skip this message
             }
 
-            const assistantMsg: OpenAIMessage = {
-                role: 'assistant',
-                content: textContent || null,
-            };
+            if (toolCallingStyle === 'xml') {
+                // XML Mode: Reconstruct XML tags from tool calls
+                let fullContent = textContent || '';
 
-            if (toolCalls.length > 0) {
-                (assistantMsg as any).tool_calls = toolCalls;
+                if (toolCalls.length > 0) {
+                    const xmlToolCalls = toolCalls.map(tc => {
+                        const args = tc.function.arguments;
+                        return `<tool_code name="${tc.function.name}">\n${args}\n</tool_code>`;
+                    }).join('\n\n');
+
+                    if (fullContent) fullContent += '\n\n';
+                    fullContent += xmlToolCalls;
+                }
+
+                result.push({
+                    role: 'assistant',
+                    content: fullContent
+                });
+            } else {
+                // Native Mode: Standard fields
+                const assistantMsg: OpenAIMessage = {
+                    role: 'assistant',
+                    content: textContent || null,
+                };
+
+                if (toolCalls.length > 0) {
+                    (assistantMsg as any).tool_calls = toolCalls;
+                }
+
+                result.push(assistantMsg);
             }
-
-            result.push(assistantMsg);
         }
     }
 

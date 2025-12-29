@@ -24,7 +24,7 @@ interface BufferedState {
 
 // Regex patterns
 const THINK_BLOCK_PATTERN = /<think>[\s\S]*?<\/think>/g;
-const TOOL_CODE_PATTERN = /<tool_code\s+name="([^"]+)">([\s\S]*?)<\/tool_code>/;
+const TOOL_CODE_PATTERN = /<tool_code\s+name\s*=\s*"([^"]+)"\s*>([\s\S]*?)<\/\s*tool_code\s*>/i;
 const NESTED_TOOL_PATTERN = /<tool\s+name="[^"]*">\s*/g;
 const CLOSE_TOOL_PATTERN = /<\/tool>\s*/g;
 
