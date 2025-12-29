@@ -146,9 +146,23 @@ export function convertRequestToOpenAI(
  * Anthropic supports prefilling assistant responses, but other providers don't
  */
 function isAssistantPrefill(content: string): boolean {
-    const prefillTokens = ['{', '[', '```', '{"', '[{'];
+    const prefillTokens = ['{', '[', '```', '{"', '[{', '<', '<tool_code', '<tool_code>'];
     const trimmed = content.trim();
-    return prefillTokens.includes(trimmed) || trimmed.length <= 2;
+
+    // Check against common prefill tokens or very short content
+    if (prefillTokens.includes(trimmed) || trimmed.length <= 2) {
+        return true;
+    }
+
+    // Special handling for XML tool calling prefill:
+    // Capture cases where client prefills the opening tag (e.g., '<tool_code name="foo">')
+    // but expects the model to complete it. We must strip this so the model generates
+    // the tool call from scratch, ensuring the streaming parser detects the full tag.
+    if (trimmed.startsWith('<tool_code') && !trimmed.includes('</tool_code>')) {
+        return true;
+    }
+
+    return false;
 }
 
 /**
