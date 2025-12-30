@@ -14,6 +14,7 @@ import {
     OpenAIToolMessage,
 } from '../types/openai';
 import { convertToolsToOpenAI, convertToolChoiceToOpenAI } from './tools';
+import { generateXmlToolInstructions } from './xmlPrompt';
 import { getCachedUpdateInfo } from '../utils/update';
 import { version } from '../../package.json';
 
@@ -46,7 +47,8 @@ function modifySystemPromptForClaudeAdapter(systemContent: string): string {
  */
 export function convertRequestToOpenAI(
     anthropicRequest: AnthropicMessageRequest,
-    targetModel: string
+    targetModel: string,
+    toolFormat: 'native' | 'xml' = 'native'
 ): OpenAIChatRequest {
     const messages: OpenAIMessage[] = [];
 
@@ -65,6 +67,18 @@ export function convertRequestToOpenAI(
         });
     }
 
+    // XML mode: inject tool instructions into system prompt
+    if (toolFormat === 'xml' && anthropicRequest.tools && anthropicRequest.tools.length > 0) {
+        const xmlInstructions = generateXmlToolInstructions(anthropicRequest.tools);
+        if (messages.length > 0 && messages[0].role === 'system') {
+            // Append to existing system message
+            messages[0].content += '\n\n' + xmlInstructions;
+        } else {
+            // Create new system message
+            messages.unshift({ role: 'system', content: xmlInstructions });
+        }
+    }
+
     // Track tool ID deduplication across messages
     // Maps original ID -> array of unique IDs (for handling duplicates)
     const idDeduplication = {
@@ -74,8 +88,9 @@ export function convertRequestToOpenAI(
     };
 
     // Convert messages with shared deduplication context
+    // Convert messages with shared deduplication context
     for (const msg of anthropicRequest.messages) {
-        const converted = convertMessage(msg, idDeduplication);
+        const converted = convertMessage(msg, idDeduplication, toolFormat);
         messages.push(...converted);
     }
 
@@ -101,6 +116,11 @@ export function convertRequestToOpenAI(
     if (anthropicRequest.temperature !== undefined) {
         openaiRequest.temperature = anthropicRequest.temperature;
     }
+
+    // XML mode: Force temperature=0 for deterministic output
+    if (toolFormat === 'xml') {
+        openaiRequest.temperature = 0;
+    }
     if (anthropicRequest.top_p !== undefined) {
         openaiRequest.top_p = anthropicRequest.top_p;
     }
@@ -110,11 +130,11 @@ export function convertRequestToOpenAI(
     // Note: metadata.user_id is intentionally NOT mapped to OpenAI's 'user' field
     // because some providers (e.g., Mistral) strictly reject unsupported parameters
 
-    // Convert tools
-    if (anthropicRequest.tools && anthropicRequest.tools.length > 0) {
+    // Convert tools (only in native mode)
+    if (toolFormat === 'native' && anthropicRequest.tools && anthropicRequest.tools.length > 0) {
         openaiRequest.tools = convertToolsToOpenAI(anthropicRequest.tools);
     }
-    if (anthropicRequest.tool_choice) {
+    if (toolFormat === 'native' && anthropicRequest.tool_choice) {
         openaiRequest.tool_choice = convertToolChoiceToOpenAI(anthropicRequest.tool_choice);
     }
 
@@ -126,9 +146,23 @@ export function convertRequestToOpenAI(
  * Anthropic supports prefilling assistant responses, but other providers don't
  */
 function isAssistantPrefill(content: string): boolean {
-    const prefillTokens = ['{', '[', '```', '{"', '[{'];
+    const prefillTokens = ['{', '[', '```', '{"', '[{', '<', '<tool_code', '<tool_code>'];
     const trimmed = content.trim();
-    return prefillTokens.includes(trimmed) || trimmed.length <= 2;
+
+    // Check against common prefill tokens or very short content
+    if (prefillTokens.includes(trimmed) || trimmed.length <= 2) {
+        return true;
+    }
+
+    // Special handling for XML tool calling prefill:
+    // Capture cases where client prefills the opening tag (e.g., '<tool_code name="foo">')
+    // but expects the model to complete it. We must strip this so the model generates
+    // the tool call from scratch, ensuring the streaming parser detects the full tag.
+    if (trimmed.startsWith('<tool_code') && !trimmed.includes('</tool_code>')) {
+        return true;
+    }
+
+    return false;
 }
 
 /**
@@ -144,7 +178,11 @@ interface IdDeduplicationContext {
  * Convert a single Anthropic message to OpenAI format
  * May return multiple messages (e.g., tool results become separate messages)
  */
-function convertMessage(msg: AnthropicMessage, ctx: IdDeduplicationContext): OpenAIMessage[] {
+function convertMessage(
+    msg: AnthropicMessage,
+    ctx: IdDeduplicationContext,
+    toolFormat: 'native' | 'xml'
+): OpenAIMessage[] {
     const result: OpenAIMessage[] = [];
 
     if (typeof msg.content === 'string') {
@@ -164,38 +202,89 @@ function convertMessage(msg: AnthropicMessage, ctx: IdDeduplicationContext): Ope
         if (msg.role === 'user') {
             const { userContent, toolResults } = processUserContentBlocks(msg.content, ctx);
 
-            // Add tool results as separate tool messages
-            result.push(...toolResults);
+            if (toolFormat === 'xml') {
+                // XML Mode: Flatten tool results into the user message text
+                let flatContent = '';
 
-            // Add user content if any
-            if (userContent.length > 0) {
-                result.push({
-                    role: 'user',
-                    content: userContent.length === 1 && userContent[0].type === 'text'
-                        ? userContent[0].text
-                        : userContent,
-                });
+                // Add regular user text
+                for (const part of userContent) {
+                    if (part.type === 'text') {
+                        flatContent += part.text;
+                    }
+                    // Images sent as text in XML mode (fallback) or omitted if not supported
+                    // For now, we only handle text
+                }
+
+                // Add tool results as XML blocks
+                if (toolResults.length > 0) {
+                    const xmlResults = toolResults.map(t =>
+                        `<tool_output>\n${t.content}\n</tool_output>`
+                    ).join('\n\n');
+
+                    if (flatContent) flatContent += '\n\n';
+                    flatContent += xmlResults;
+                }
+
+                if (flatContent) {
+                    result.push({ role: 'user', content: flatContent });
+                }
+            } else {
+                // Native Mode: Standard separation
+                // Add tool results as separate tool messages
+                result.push(...toolResults);
+
+                // Add user content if any
+                if (userContent.length > 0) {
+                    result.push({
+                        role: 'user',
+                        content: userContent.length === 1 && userContent[0].type === 'text'
+                            ? userContent[0].text
+                            : userContent,
+                    });
+                }
             }
         } else {
             // Assistant message with content blocks
+            // Note: We still use processAssistantContentBlocks for deduplication logic, 
+            // even if we don't use the tool_calls output in XML mode (to keep state consistent)
             const { textContent, toolCalls } = processAssistantContentBlocks(msg.content, ctx);
 
             // Skip assistant prefill messages when content is just a JSON starter
-            // These are Anthropic-specific and cause 400 errors with other providers
             if (toolCalls.length === 0 && textContent && isAssistantPrefill(textContent)) {
                 return result; // Return empty - skip this message
             }
 
-            const assistantMsg: OpenAIMessage = {
-                role: 'assistant',
-                content: textContent || null,
-            };
+            if (toolFormat === 'xml') {
+                // XML Mode: Reconstruct XML tags from tool calls
+                let fullContent = textContent || '';
 
-            if (toolCalls.length > 0) {
-                (assistantMsg as any).tool_calls = toolCalls;
+                if (toolCalls.length > 0) {
+                    const xmlToolCalls = toolCalls.map(tc => {
+                        const args = tc.function.arguments;
+                        return `<tool_code name="${tc.function.name}">\n${args}\n</tool_code>`;
+                    }).join('\n\n');
+
+                    if (fullContent) fullContent += '\n\n';
+                    fullContent += xmlToolCalls;
+                }
+
+                result.push({
+                    role: 'assistant',
+                    content: fullContent
+                });
+            } else {
+                // Native Mode: Standard fields
+                const assistantMsg: OpenAIMessage = {
+                    role: 'assistant',
+                    content: textContent || null,
+                };
+
+                if (toolCalls.length > 0) {
+                    (assistantMsg as any).tool_calls = toolCalls;
+                }
+
+                result.push(assistantMsg);
             }
-
-            result.push(assistantMsg);
         }
     }
 

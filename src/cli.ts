@@ -44,9 +44,19 @@ program
                 UI.log(''); // Spacing
                 config = await promptForConfiguration();
                 saveConfig(config);
+                console.log(`\x1b[2m✔\x1b[0m Tool Format: ${UI.dim(`[${config.toolFormat?.toUpperCase() || 'NATIVE'}]`)}`);
                 UI.info('Creating Claude Adapter API...');
+            } else if (config.toolFormat === undefined) {
+                // Existing config missing toolFormat - prompt only for that
+                UI.log(''); // Spacing
+                const toolStyle = await promptForToolCallingStyle();
+                config.toolFormat = toolStyle;
+                saveConfig(config);
+                console.log(`\x1b[2m✔\x1b[0m Tool Format: ${UI.dim(`[${config.toolFormat.toUpperCase()}]`)}`);
+                UI.info('Tool calling preference saved');
             } else {
                 UI.info('Using existing configuration');
+                console.log(`\x1b[2m✔\x1b[0m Tool Format: ${UI.dim(`[${config.toolFormat.toUpperCase()}]`)}`);
             }
 
             // Step 3: Find available port and start server
@@ -184,6 +194,41 @@ async function promptForConfiguration(): Promise<AdapterConfig> {
         console.log(`${prefix} Alternative model for Haiku: ${UI.dim(`[${sonnetModel}]`)}`);
     }
 
+    // Tool calling support prompt (after all models are entered)
+    const toolSupportAnswer = await inquirer.prompt([{
+        type: 'list',
+        name: 'supportsTools',
+        prefix,
+        message: 'Do your models support tool/function calling?',
+        choices: [
+            { name: 'Yes', value: true },
+            { name: 'No', value: false }
+        ],
+        default: true
+    }]);
+
+    let toolFormat: 'native' | 'xml';
+
+    if (toolSupportAnswer.supportsTools) {
+        // User selected "Yes" - ask for tool type
+        const toolTypeAnswer = await inquirer.prompt([{
+            type: 'list',
+            name: 'toolType',
+            prefix,
+            message: 'Select tool/function type:',
+            choices: [
+                { name: 'XML (Recommended)', value: 'xml' },
+                { name: 'Native (Openai Format)', value: 'native' }
+            ],
+            default: 'xml'
+        }]);
+        toolFormat = toolTypeAnswer.toolType as 'native' | 'xml';
+    } else {
+        // User selected "No" - auto-select xml
+        console.log(`\x1b[32m✔\x1b[0m Tool Format: ${UI.dim('[XML]')}`);
+        toolFormat = 'xml';
+    }
+
     return {
         baseUrl: requiredAnswers.baseUrl.trim(),
         apiKey: requiredAnswers.apiKey.trim(),
@@ -192,8 +237,49 @@ async function promptForConfiguration(): Promise<AdapterConfig> {
             sonnet: sonnetModel,
             haiku: haikuModel,
         },
+        toolFormat,
     };
+}
+
+/**
+ * Prompt only for tool calling style (for existing configs missing this field)
+ */
+async function promptForToolCallingStyle(): Promise<'native' | 'xml'> {
+    const prefix = UI.dim('?');
+
+    const toolSupportAnswer = await inquirer.prompt([{
+        type: 'list',
+        name: 'supportsTools',
+        prefix,
+        message: 'Do your models support tool/function calling?',
+        choices: [
+            { name: 'Yes', value: true },
+            { name: 'No', value: false }
+        ],
+        default: true
+    }]);
+
+    if (toolSupportAnswer.supportsTools) {
+        // User selected "Yes" - ask for tool type
+        const toolTypeAnswer = await inquirer.prompt([{
+            type: 'list',
+            name: 'toolType',
+            prefix,
+            message: 'Select tool/function type:',
+            choices: [
+                { name: 'XML (Recommended)', value: 'xml' },
+                { name: 'Native (Openai Format)', value: 'native' }
+            ],
+            default: 'xml'
+        }]);
+        return toolTypeAnswer.toolType as 'native' | 'xml';
+    } else {
+        // User selected "No" - auto-select xml
+        console.log(`\x1b[32m✔\x1b[0m Tool Format: ${UI.dim('[XML]')}`);
+        return 'xml';
+    }
 }
 
 // Run the CLI
 program.parse();
+

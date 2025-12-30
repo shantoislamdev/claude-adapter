@@ -6,6 +6,7 @@ import { AdapterConfig } from '../types/config';
 import { convertRequestToOpenAI } from '../converters/request';
 import { convertResponseToAnthropic, createErrorResponse } from '../converters/response';
 import { streamOpenAIToAnthropic } from '../converters/streaming';
+import { streamXmlOpenAIToAnthropic } from '../converters/xmlStreaming';
 import { validateAnthropicRequest, formatValidationErrors } from '../utils/validation';
 import { logger, RequestLogger } from '../utils/logger';
 import { recordUsage } from '../utils/tokenUsage';
@@ -54,11 +55,23 @@ export function createMessagesHandler(config: AdapterConfig) {
 
             log.info(`→ ${targetModel} [sent]`);
 
+            // Determine tool calling style from config
+            const toolStyle = config.toolFormat || 'native';
+
             // Convert request to OpenAI format
-            const openaiRequest = convertRequestToOpenAI(anthropicRequest, targetModel);
+            const openaiRequest = convertRequestToOpenAI(anthropicRequest, targetModel, toolStyle);
+
+            // Log tool calling mode when tools are present
+            if (toolStyle === 'xml' && anthropicRequest.tools?.length) {
+                log.info(`Using XML tool calling mode (${anthropicRequest.tools.length} tools)`);
+            }
 
             if (isStreaming) {
-                await handleStreamingRequest(openai, openaiRequest, reply, anthropicRequest.model, config.baseUrl, log);
+                if (toolStyle === 'xml') {
+                    await handleXmlStreamingRequest(openai, openaiRequest, reply, anthropicRequest.model, config.baseUrl, log);
+                } else {
+                    await handleStreamingRequest(openai, openaiRequest, reply, anthropicRequest.model, config.baseUrl, log);
+                }
             } else {
                 await handleNonStreamingRequest(openai, openaiRequest, reply, anthropicRequest.model, config.baseUrl, log);
             }
@@ -136,6 +149,28 @@ async function handleStreamingRequest(
 
     await streamOpenAIToAnthropic(stream as any, reply, originalModel, provider);
     log.debug('Streaming completed');
+}
+
+/**
+ * Handle XML streaming API request (for models without native tool calling)
+ */
+async function handleXmlStreamingRequest(
+    openai: OpenAI,
+    openaiRequest: any,
+    reply: FastifyReply,
+    originalModel: string,
+    provider: string,
+    log: RequestLogger
+): Promise<void> {
+    log.debug('Making XML streaming request (experimental)');
+
+    const stream = await openai.chat.completions.create({
+        ...openaiRequest,
+        stream: true,
+    } as OpenAI.ChatCompletionCreateParamsStreaming);
+
+    await streamXmlOpenAIToAnthropic(stream as any, reply, originalModel, provider);
+    log.debug('XML streaming completed');
 }
 
 /**

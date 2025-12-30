@@ -4,6 +4,7 @@ export interface AdapterConfig {
     baseUrl: string;
     apiKey: string;
     models: ModelConfig;
+    toolFormat?: 'native' | 'xml';  // Default: 'native'
     port?: number;
 }
 
