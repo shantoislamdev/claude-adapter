@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2025-12-30
+
+### Added
+
+- **XML Tool Calling**: Support for models without native function calling (minimax, deepseek, older OSS models)
+    - New `toolCallingStyle` config option: `'native'` (default) or `'xml'`
+    - XML prompt injection with tool definitions into system prompt
+    - Buffered streaming converter that detects `<tool_code name="...">` blocks
+    - Automatic filtering of `<think>` blocks from model output
+    - Forces `temperature=0` in XML mode for deterministic output
+
+- **CLI Enhancement**: Interactive prompt asking about model tool calling support during setup
+    - Incremental config update for existing installations
+
+### New Files
+
+- `src/converters/xmlStreaming.ts` - Buffered XML→Anthropic SSE converter
+- `src/converters/xmlPrompt.ts` - XML tool instruction generator
+- `tests/xmlStreaming.test.ts` - XML streaming tests
+- `tests/xmlPrompt.test.ts` - XML prompt generation tests
+
 ## [1.2.1] - 2025-12-26
 
 ### Fixed
@@ -117,7 +138,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-[Unreleased]: https://github.com/shantoislamdev/claude-adapter/compare/v1.2.1...HEAD
+[Unreleased]: https://github.com/shantoislamdev/claude-adapter/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/shantoislamdev/claude-adapter/compare/v1.2.1...v2.0.0
 [1.2.1]: https://github.com/shantoislamdev/claude-adapter/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/shantoislamdev/claude-adapter/compare/v1.1.5...v1.2.0
 [1.1.5]: https://github.com/shantoislamdev/claude-adapter/compare/v1.1.4...v1.1.5
