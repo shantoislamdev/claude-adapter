@@ -57,6 +57,30 @@ describe('Request Validation', () => {
             expect(result.errors.some(e => e.field === 'max_tokens')).toBe(true);
         });
 
+        it('should reject missing messages field', () => {
+            const request = {
+                model: 'claude-4-opus',
+                max_tokens: 1024
+                // messages missing
+            };
+
+            const result = validateAnthropicRequest(request);
+            expect(result.valid).toBe(false);
+            expect(result.errors.some(e => e.field === 'messages')).toBe(true);
+        });
+
+        it('should reject non-array messages', () => {
+            const request = {
+                model: 'claude-4-opus',
+                max_tokens: 1024,
+                messages: 'not-an-array'
+            };
+
+            const result = validateAnthropicRequest(request);
+            expect(result.valid).toBe(false);
+            expect(result.errors.some(e => e.field === 'messages')).toBe(true);
+        });
+
         it('should reject empty messages array', () => {
             const request = {
                 model: 'claude-4-opus',
@@ -69,6 +93,18 @@ describe('Request Validation', () => {
             expect(result.errors.some(e => e.field === 'messages')).toBe(true);
         });
 
+        it('should reject missing role', () => {
+            const request = {
+                model: 'claude-4-opus',
+                max_tokens: 1024,
+                messages: [{ content: 'Hello' }]
+            };
+
+            const result = validateAnthropicRequest(request);
+            expect(result.valid).toBe(false);
+            expect(result.errors.some(e => e.field.includes('role'))).toBe(true);
+        });
+
         it('should reject invalid message role', () => {
             const request = {
                 model: 'claude-4-opus',
@@ -79,6 +115,30 @@ describe('Request Validation', () => {
             const result = validateAnthropicRequest(request);
             expect(result.valid).toBe(false);
             expect(result.errors.some(e => e.field.includes('role'))).toBe(true);
+        });
+
+        it('should reject non-object message in array', () => {
+            const request = {
+                model: 'claude-4-opus',
+                max_tokens: 1024,
+                messages: ['not-an-object']
+            };
+
+            const result = validateAnthropicRequest(request);
+            expect(result.valid).toBe(false);
+            expect(result.errors.some(e => e.field.includes('messages['))).toBe(true);
+        });
+
+        it('should reject missing content', () => {
+            const request = {
+                model: 'claude-4-opus',
+                max_tokens: 1024,
+                messages: [{ role: 'user' }]
+            };
+
+            const result = validateAnthropicRequest(request);
+            expect(result.valid).toBe(false);
+            expect(result.errors.some(e => e.field.includes('content'))).toBe(true);
         });
 
         it('should accept content as array', () => {
@@ -106,6 +166,34 @@ describe('Request Validation', () => {
             const result = validateAnthropicRequest(request);
             expect(result.valid).toBe(false);
             expect(result.errors.some(e => e.field.includes('type'))).toBe(true);
+        });
+
+        it('should reject invalid content type (number)', () => {
+            const request = {
+                model: 'claude-4-opus',
+                max_tokens: 1024,
+                messages: [
+                    { role: 'user', content: 123 }
+                ]
+            };
+
+            const result = validateAnthropicRequest(request);
+            expect(result.valid).toBe(false);
+            expect(result.errors.some(e => e.field.includes('content'))).toBe(true);
+        });
+
+        it('should reject non-object content block', () => {
+            const request = {
+                model: 'claude-4-opus',
+                max_tokens: 1024,
+                messages: [
+                    { role: 'user', content: ['not-an-object'] }
+                ]
+            };
+
+            const result = validateAnthropicRequest(request);
+            expect(result.valid).toBe(false);
+            expect(result.errors.some(e => e.field.includes('content['))).toBe(true);
         });
 
         it('should validate optional temperature range', () => {

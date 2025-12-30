@@ -2,6 +2,18 @@
 import { convertRequestToOpenAI } from '../src/converters/request';
 import { AnthropicMessageRequest } from '../src/types/anthropic';
 
+// Mock update utility
+jest.mock('../src/utils/update', () => ({
+    getCachedUpdateInfo: jest.fn().mockReturnValue(null) // Default no update
+}));
+
+// Mock XML prompt generator
+jest.mock('../src/converters/xmlPrompt', () => ({
+    generateXmlToolInstructions: jest.fn().mockReturnValue('<<XML_INSTRUCTIONS>>')
+}));
+
+import { getCachedUpdateInfo } from '../src/utils/update';
+
 describe('Request Converter', () => {
     describe('convertRequestToOpenAI', () => {
         it('should convert a simple text message', () => {
@@ -687,6 +699,118 @@ describe('Request Converter', () => {
             expect(result.messages[0].role).toBe('system');
             expect(result.messages[0].content).toContain('Claude Adapter');
             expect(result.messages[0].content).toContain('Additional context here.');
+        });
+        it('should append update notification when update is available', () => {
+            const mockUpdateInfo = { hasUpdate: true, current: '2.0.0', latest: '2.1.0' };
+            (getCachedUpdateInfo as jest.Mock).mockReturnValue(mockUpdateInfo);
+
+            const anthropicRequest: AnthropicMessageRequest = {
+                model: 'claude-4.5-sonnet',
+                max_tokens: 1024,
+                system: "You are Claude Code, Anthropic's official CLI for Claude.",
+                messages: [{ role: 'user', content: 'Hello' }]
+            };
+
+            const result = convertRequestToOpenAI(anthropicRequest, 'gpt-4');
+
+            expect(result.messages[0].content).toContain('IMPORTANT: A new version of Claude Adapter is available');
+            expect(result.messages[0].content).toContain('(2.0.0 → 2.1.0)');
+            expect(result.messages[0].content).toContain('npm i -g claude-adapter');
+        });
+    });
+
+    describe('XML Tool Format Conversion', () => {
+        it('should inject XML instructions into system prompt', () => {
+            const anthropicRequest: AnthropicMessageRequest = {
+                model: 'claude-4.5-sonnet',
+                max_tokens: 1024,
+                system: 'System prompt',
+                tools: [{ name: 'test', description: 'test', input_schema: { type: 'object', properties: {} } }],
+                messages: [{ role: 'user', content: 'Hello' }]
+            };
+
+            const result = convertRequestToOpenAI(anthropicRequest, 'gpt-4', 'xml');
+
+            expect(result.messages[0].content).toContain('System prompt');
+            expect(result.messages[0].content).toContain('<<XML_INSTRUCTIONS>>');
+        });
+
+        it('should create new system prompt with XML instructions if none exists', () => {
+            const anthropicRequest: AnthropicMessageRequest = {
+                model: 'claude-4.5-sonnet',
+                max_tokens: 1024,
+                tools: [{ name: 'test', description: 'test', input_schema: { type: 'object', properties: {} } }],
+                messages: [{ role: 'user', content: 'Hello' }]
+            };
+
+            const result = convertRequestToOpenAI(anthropicRequest, 'gpt-4', 'xml');
+
+            expect(result.messages[0].role).toBe('system');
+            expect(result.messages[0].content).toBe('<<XML_INSTRUCTIONS>>');
+        });
+
+        it('should set temperature to 0 in XML mode', () => {
+            const anthropicRequest: AnthropicMessageRequest = {
+                model: 'claude-4.5-sonnet',
+                max_tokens: 1024,
+                messages: [{ role: 'user', content: 'Hello' }]
+            };
+
+            const result = convertRequestToOpenAI(anthropicRequest, 'gpt-4', 'xml');
+            expect(result.temperature).toBe(0);
+        });
+
+        it('should flatten user tool results into text content in XML mode', () => {
+            const anthropicRequest: AnthropicMessageRequest = {
+                model: 'claude-4.5-sonnet',
+                max_tokens: 1024,
+                messages: [
+                    {
+                        role: 'user',
+                        content: [
+                            { type: 'text', text: 'Check result:' },
+                            { type: 'tool_result', tool_use_id: '123', content: 'Result 1' },
+                            { type: 'tool_result', tool_use_id: '456', content: 'Result 2' }
+                        ]
+                    }
+                ]
+            };
+
+            const result = convertRequestToOpenAI(anthropicRequest, 'gpt-4', 'xml');
+
+            expect(result.messages[0].role).toBe('user');
+            expect(result.messages[0].content).toContain('Check result:');
+            expect(result.messages[0].content).toContain('<tool_output>\nResult 1\n</tool_output>');
+            expect(result.messages[0].content).toContain('<tool_output>\nResult 2\n</tool_output>');
+        });
+
+        it('should convert assistant tool calls to XML tags', () => {
+            const anthropicRequest: AnthropicMessageRequest = {
+                model: 'claude-4.5-sonnet',
+                max_tokens: 1024,
+                messages: [
+                    {
+                        role: 'assistant',
+                        content: [
+                            { type: 'text', text: 'Thinking...' },
+                            {
+                                type: 'tool_use',
+                                id: 'call_123',
+                                name: 'my_tool',
+                                input: { arg: 'val' }
+                            }
+                        ]
+                    }
+                ]
+            };
+
+            const result = convertRequestToOpenAI(anthropicRequest, 'gpt-4', 'xml');
+
+            const content = result.messages[0].content as string;
+            expect(content).toContain('Thinking...');
+            expect(content).toContain('<tool_code name="my_tool">');
+            expect(content).toContain('"arg":"val"'); // Partial match for JSON string
+            expect(content).toContain('</tool_code>');
         });
     });
 });
