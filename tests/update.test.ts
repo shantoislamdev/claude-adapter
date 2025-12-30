@@ -51,7 +51,7 @@ describe('Update Utilities', () => {
 
         it('should return update info if cache is valid (1 hour old)', () => {
             mockGetCachedLatestVersion.mockReturnValue({
-                version: '2.0.0',
+                version: '99.0.0',
                 timestamp: Date.now() - 1 * 60 * 60 * 1000 // 1 hour ago
             });
 
@@ -59,7 +59,7 @@ describe('Update Utilities', () => {
 
             expect(result).not.toBeNull();
             expect(result?.current).toBe(currentVersion);
-            expect(result?.latest).toBe('2.0.0');
+            expect(result?.latest).toBe('99.0.0');
             expect(result?.hasUpdate).toBe(true);
         });
 
@@ -101,13 +101,13 @@ describe('Update Utilities', () => {
     describe('checkForUpdates', () => {
         it('should return cached info if cache is valid', async () => {
             mockGetCachedLatestVersion.mockReturnValue({
-                version: '2.0.0',
+                version: '99.0.0',
                 timestamp: Date.now() - 1000 // 1 second ago
             });
 
             const result = await checkForUpdates();
 
-            expect(result?.latest).toBe('2.0.0');
+            expect(result?.latest).toBe('99.0.0');
             expect(result?.hasUpdate).toBe(true);
             expect(mockHttpsGet).not.toHaveBeenCalled();
         });

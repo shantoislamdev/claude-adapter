@@ -444,5 +444,60 @@ describe('Streaming Converter', () => {
             expect(textBlock).toBeDefined();
             expect(toolBlock).toBeDefined();
         });
+        it('should generate tool ID if missing in stream', async () => {
+            const mockRaw = new MockRawResponse();
+            const mockReply = { raw: mockRaw } as any;
+
+            const stream = createMockStream([
+                {
+                    choices: [{
+                        delta: {
+                            tool_calls: [{
+                                index: 0,
+                                // id is missing
+                                function: { name: 'test_tool', arguments: '{}' }
+                            }]
+                        },
+                        finish_reason: null
+                    }]
+                },
+                { choices: [{ delta: {}, finish_reason: 'tool_calls' }] },
+            ]);
+
+            await streamOpenAIToAnthropic(stream as any, mockReply, 'claude-4-opus');
+
+            const events = mockRaw.getEvents();
+            const toolBlock = events.find(e =>
+                e.data.type === 'content_block_start' &&
+                e.data.content_block?.type === 'tool_use'
+            );
+
+            expect(toolBlock).toBeDefined();
+            expect(toolBlock!.data.content_block.id).toBeDefined();
+            expect(toolBlock!.data.content_block.id).toMatch(/^call_/);
+        });
+
+        it('should capture and use response model for usage recording', async () => {
+            const mockRaw = new MockRawResponse();
+            const mockReply = { raw: mockRaw } as any;
+            const recordUsage = require('../src/utils/tokenUsage').recordUsage;
+
+            const stream = createMockStream([
+                {
+                    model: 'gpt-4-0613', // Different from request model
+                    choices: [{ delta: { content: 'Test' }, finish_reason: null }]
+                },
+                {
+                    choices: [{ delta: {}, finish_reason: 'stop' }],
+                    usage: { prompt_tokens: 10, completion_tokens: 5 }
+                },
+            ]);
+
+            await streamOpenAIToAnthropic(stream as any, mockReply, 'claude-4-opus', 'openai');
+
+            expect(recordUsage).toHaveBeenCalledWith(expect.objectContaining({
+                model: 'gpt-4-0613'
+            }));
+        });
     });
 });
