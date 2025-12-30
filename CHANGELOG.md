@@ -1,151 +1,114 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
+All notable changes to this project are documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
-## [Unreleased]
-
-## [2.0.0] - 2025-12-30
-
-### Added
-
-- **XML Tool Calling**: Support for models without native function calling (minimax, deepseek, older OSS models)
-    - New `toolCallingStyle` config option: `'native'` (default) or `'xml'`
-    - XML prompt injection with tool definitions into system prompt
-    - Buffered streaming converter that detects `<tool_code name="...">` blocks
-    - Automatic filtering of `<think>` blocks from model output
-    - Forces `temperature=0` in XML mode for deterministic output
-
-- **CLI Enhancement**: Interactive prompt asking about model tool calling support during setup
-    - Incremental config update for existing installations
-
-### New Files
-
-- `src/converters/xmlStreaming.ts` - Buffered XML→Anthropic SSE converter
-- `src/converters/xmlPrompt.ts` - XML tool instruction generator
-- `tests/xmlStreaming.test.ts` - XML streaming tests
-- `tests/xmlPrompt.test.ts` - XML prompt generation tests
-
-## [1.2.1] - 2025-12-26
-
-### Fixed
-
-- **Streaming Token Usage**: Fixed a critical bug where token usage was reported as 0 in streaming responses.
-    - Added `stream_options: { include_usage: true }` to OpenAI requests (required for newer provider versions)
-    - Fixed chunk processing logic to correctly parse usage data even when it arrives in a chunk with empty/missing `choices` (common end-of-stream behavior)
-- **Version Comparison**: Fixed an issue where older versions (e.g. 1.1.5) were incorrectly identified as updates over newer versions (e.g. 1.2.0) due to string comparison instead of semantic versioning
-
-## [1.2.0] - 2025-12-22
-
-### Added
-
-- **Token Usage Logging**: Track API usage in `~/.claude-adapter/token_usage/YYYY-MM-DD.jsonl` with modelName, actual model, input/output tokens, cached tokens
-- **Error Logging**: Store API errors in `~/.claude-adapter/error_logs/YYYY-MM-DD.jsonl` with full error details (skips 401, 402, 404, 429)
-- **Metadata Storage**: Create `~/.claude-adapter/metadata.json` on first run with unique userId, platform, platformRelease, and version info
-- **Update Notifier**: CLI checks npm registry for new versions with 24-hour caching
-- **Smart Update Prompts**: When a new version is available, Claude Code is instructed to prompt users to run `npm i -g claude-adapter`
-
-### Improved
-
-- Shared `fileStorage.ts` utility for race-safe JSON Lines writes
-- Zero-dependency update checking using native `https` module
-- Non-blocking update checks with 3-second timeout
-
-## [1.1.5] - 2025-12-21
-
-### Fixed
-
-- **Azure OpenAI Compatibility**: Fixed strict validation errors by automatically converting `max_tokens: 1` (used for prompt caching) to `max_tokens: 32` for providers with stricter limits
-
-## [1.1.4] - 2025-12-20
-
-### Fixed
-
-- **Smart Tool ID Deduplication**: Re-implemented ID deduplication that matches original ID length for provider compatibility (Mistral needs 9 chars, Bedrock accepts longer). For IDs >11 chars, keeps first 8 chars; for shorter IDs, generates new ID of same length
-
-## [1.1.3] - 2025-12-20
-
-### Fixed
-
-- **Tool Call ID Handling**: Removed ID repair logic that was incorrectly modifying tool_use IDs on each request, causing tool_use/result pairing failures across conversation turns
-
-## [1.1.2] - 2025-12-20
-
-### Fixed
-
-- **Tool Call ID Format**: Attempted fix for 400 errors with 9-character alphanumeric IDs (superseded by v1.1.3)
-
-## [1.1.1] - 2025-12-20
-
-### Fixed
-
-- **OpenAI-Compatible API Support**: Fixed 422 errors with providers like Mistral that strictly reject unsupported parameters (removed `user` field from requests)
-- **Assistant Prefill Compatibility**: Fixed 400 errors by detecting and skipping Anthropic-specific assistant prefill messages (e.g., `{` for JSON output) that other providers don't support
-
-### Improved
-
-- **Simplified Logging**: Cleaner log output in non-debug mode with simple `→ model [sent]` / `← model [received]` format
-- **Debug Logging**: Full timestamps and metadata preserved in debug mode (`LOG_LEVEL=debug`)
-
-## [1.1.0] - 2025-12-18
-
-### Added
-
-- **Request Input Validation**: Comprehensive validation for incoming Anthropic API requests with detailed error messages
-- **Structured Logging**: Logger utility with log levels (DEBUG/INFO/WARN/ERROR), timestamps, and colored output
-- **Request ID Tracing**: Unique request IDs (`X-Request-Id` header) for debugging and log correlation
-- **Graceful Shutdown**: Server shutdown with configurable timeout for in-flight requests
-- **API Documentation**: Complete API reference at `docs/API.md`
-
-### Improved
-
-- Test coverage increased from ~30% to ~70%
-- Added 98 unit tests covering converters, validation, logging, and server
-- Migrated from Express to Fastify for improved performance
-
-### New Test Files
-
-- `tests/validation.test.ts` - Request validation tests
-- `tests/streaming.test.ts` - SSE streaming tests
-- `tests/logger.test.ts` - Logger utility tests
-- `tests/server.test.ts` - Server setup tests
-
-## [1.0.0] - 2025-12-17
-
-### Added
-
-- Initial release of Claude Adapter
-- CLI tool for interactive configuration
-- Proxy server converting Anthropic Messages API to OpenAI Chat Completions
-- Full streaming support with SSE event transformation
-- Tool/function calling conversion between APIs
-- Automatic Claude Code settings configuration
-- Support for model mapping (Opus, Sonnet, Haiku)
-- Configuration persistence in `~/.claude-adapter/config.json`
-- Onboarding skip for Claude Code via `~/.claude.json`
-- Comprehensive type definitions for both APIs
-- Unit tests for all converters
-
-### Features
-
-- **Request Conversion**: Anthropic → OpenAI format
-- **Response Conversion**: OpenAI → Anthropic format  
-- **Streaming**: Real-time SSE transformation
-- **Tools**: Bidirectional tool/function call conversion
-- **CLI**: Interactive setup with guided prompts
+The format follows **Keep a Changelog** and this project adheres to **Semantic Versioning (SemVer)**.
 
 ---
 
-[Unreleased]: https://github.com/shantoislamdev/claude-adapter/compare/v2.0.0...HEAD
-[2.0.0]: https://github.com/shantoislamdev/claude-adapter/compare/v1.2.1...v2.0.0
-[1.2.1]: https://github.com/shantoislamdev/claude-adapter/compare/v1.2.0...v1.2.1
-[1.2.0]: https://github.com/shantoislamdev/claude-adapter/compare/v1.1.5...v1.2.0
-[1.1.5]: https://github.com/shantoislamdev/claude-adapter/compare/v1.1.4...v1.1.5
-[1.1.4]: https://github.com/shantoislamdev/claude-adapter/compare/v1.1.3...v1.1.4
-[1.1.3]: https://github.com/shantoislamdev/claude-adapter/compare/v1.1.2...v1.1.3
-[1.1.2]: https://github.com/shantoislamdev/claude-adapter/compare/v1.1.1...v1.1.2
-[1.1.1]: https://github.com/shantoislamdev/claude-adapter/compare/v1.1.0...v1.1.1
-[1.1.0]: https://github.com/shantoislamdev/claude-adapter/compare/v1.0.0...v1.1.0
-[1.0.0]: https://github.com/shantoislamdev/claude-adapter/releases/tag/v1.0.0
+## [2.0.0] — 2025-12-30
+
+### Breaking Changes
+
+- **Node.js Requirement**: Raised minimum supported Node.js version to **v20.0.0**.
+
+### Added
+
+- **XML Tool Calling**: Added support for models lacking native tool usage via XML injection, output parsing, and history reconstruction.
+- **Deterministic Output**: Enforced `temperature: 0` and `<think>` block filtering for XML mode to ensure reliability.
+- **CLI Setup**: Added interactive configuration for tool styles (`native` vs `xml`) and model capabilities.
+
+### Fixed
+
+- **XML History**: Resolved conversation history mismatches during multi-turn tool interactions.
+- **XML Parsing**: Improved resilience against whitespace variations and case sensitivity in model outputs.
+
+---
+
+## [1.2.1] — 2025-12-26
+
+### Fixed
+
+- **Streaming Usage**: Fixed zero-token reporting and handled usage data in empty end-of-stream chunks.
+- **Update Logic**: Switched to Semantic Versioning for accurate update detection.
+
+---
+
+## [1.2.0] — 2025-12-22
+
+### Added
+
+- **Logging**: Added tracking for token usage (input/output/cache) and detailed error reporting.
+- **Update System**: Added non-blocking update checks, smart upgrade prompts, and metadata storage.
+
+### Improved
+
+- **Performance**: Implemented zero-dependency update checks and race-safe JSON utilities to prevent CLI blocking.
+
+---
+
+## [1.1.5] — 2025-12-21
+
+### Fixed
+
+- **Azure OpenAI**: Adjusted prompt caching limits to comply with stricter provider constraints.
+
+---
+
+## [1.1.4] — 2025-12-20
+
+### Fixed
+
+- **ID Deduplication**: Reworked ID generation to preserve constraints while ensuring uniqueness.
+
+---
+
+## [1.1.3] — 2025-12-20
+
+### Fixed
+
+- **ID Handling**: Removed logic that caused ID mismatches across tool/result pairs.
+
+---
+
+## [1.1.2] — 2025-12-20
+
+### Fixed
+
+- **ID Format**: Initial fix for strict identifier formats (superseded by v1.1.3).
+
+---
+
+## [1.1.1] — 2025-12-20
+
+### Fixed
+
+- **API Compatibility**: Removed unsupported fields to prevent validation errors with strict providers.
+- **Assistant Prefill**: Disabled prefill messages for providers that do not support them.
+
+### Improved
+
+- **Logging**: Simplified standard output while preserving details in debug mode.
+
+---
+
+## [1.1.0] — 2025-12-18
+
+### Added
+
+- **Core**: Added comprehensive request validation, ID tracing, and graceful server shutdown.
+- **Logging**: implemented structured logging with timestamps and color support.
+- **Docs**: Added complete API documentation.
+
+### Improved
+
+- **Internal**: Migrated to a high-performance web framework and significantly increased test coverage.
+
+---
+
+## [1.0.0] — 2025-12-17
+
+### Added
+
+- **Initial Release**: Launched **Claude Adapter** with CLI, proxy server, and persistent config.
+- **Core Features**: Included Anthropic-to-OpenAI conversion, SSE streaming, and bidirectional tool support.
