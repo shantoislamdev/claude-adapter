@@ -6,6 +6,14 @@ The format follows **Keep a Changelog** and this project adheres to **Semantic V
 
 ---
 
+## [2.1.0] — 2025-01-19
+
+### Added
+
+- **CLI**: Added `--no-claude-settings` flag to skip automatic Claude Code settings modification
+
+---
+
 ## [2.0.0] — 2025-12-30
 
 ### Breaking Changes

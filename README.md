@@ -95,12 +95,13 @@ npm install -g claude-adapter
 
 The CLI accepts several flags to customize runtime behavior:
 
-| Option              | Description                                   | Default |
-| ------------------- | --------------------------------------------- | ------- |
-| `-p, --port <port>` | Specifies the port for the local proxy server | `3080`  |
-| `-r, --reconfigure` | Forces the specific reconfiguration workflow  | `false` |
-| `-V, --version`     | Output the current version information        | —       |
-| `-h, --help`        | Display available commands and options        | —       |
+| Option                  | Description                                   | Default |
+| ----------------------- | --------------------------------------------- | ------- |
+| `-p, --port <port>`     | Specifies the port for the local proxy server | `3080`  |
+| `-r, --reconfigure`     | Forces the specific reconfiguration workflow  | `false` |
+| `--no-claude-settings`  | Skip updating Claude Code settings files      | `false` |
+| `-V, --version`         | Output the current version information        | —       |
+| `-h, --help`            | Display available commands and options        | —       |
 
 ### Model Mapping Configuration
 
@@ -207,6 +208,25 @@ claude-adapter --reconfigure
 <summary><strong>Connection Refused</strong></summary>
 
 Ensure the proxy server is running in a terminal window. Check your `~/.claude/settings.json` to verify the `ANTHROPIC_BASE_URL` is pointing to the correct local address (e.g., `http://localhost:3080`).
+</details>
+
+<details>
+<summary><strong>Manual Configuration Mode</strong></summary>
+
+To run the adapter without modifying Claude Code's settings, use `--no-claude-settings`:
+```bash
+claude-adapter --no-claude-settings
+```
+
+Then manually set environment variables in `~/.claude/settings.json`:
+```json
+{
+  "env": {
+    "ANTHROPIC_BASE_URL": "http://localhost:3080",
+    "ANTHROPIC_AUTH_TOKEN": "default"
+  }
+}
+```
 </details>
 
 ---

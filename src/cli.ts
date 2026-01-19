@@ -25,6 +25,7 @@ program
 program
     .option('-p, --port <port>', 'Port to run the proxy server on', '3080')
     .option('-r, --reconfigure', 'Force reconfiguration even if config exists')
+    .option('--no-claude-settings', 'Skip updating Claude Code settings files')
     .action(async (options) => {
         UI.banner();
         UI.header('Adapt any model for Claude Code');
@@ -33,9 +34,13 @@ program
             // Initialize metadata (creates metadata.json on first run)
             getMetadata();
 
-            // Step 1: Update ~/.claude.json for onboarding skip
-            updateClaudeJson();
-            UI.statusDone(true, 'Initialized Claude Adapter');
+            // Step 1: Update ~/.claude.json for onboarding skip (if enabled)
+            if (options.claudeSettings) {
+                updateClaudeJson();
+                UI.statusDone(true, 'Initialized Claude Adapter');
+            } else {
+                UI.info('Skipping Claude settings update (--no-claude-settings)');
+            }
 
             // Step 2: Load or create configuration
             let config = loadConfig();
@@ -67,16 +72,21 @@ program
             const proxyUrl = await server.start(port);
             UI.statusDone(true, `Claude Adapter running at ${UI.newUrl(proxyUrl)}`);
 
-            // Step 4: Update Claude Code settings
-            updateClaudeSettings(proxyUrl, config.models);
-            UI.statusDone(true, 'Models configured:');
+            // Step 4: Update Claude Code settings (if enabled)
+            if (options.claudeSettings) {
+                updateClaudeSettings(proxyUrl, config.models);
+                UI.statusDone(true, 'Models configured:');
 
-            // Display configured models
-            UI.table([
-                { label: 'Opus', value: config.models.opus },
-                { label: 'Sonnet', value: config.models.sonnet },
-                { label: 'Haiku', value: config.models.haiku }
-            ]);
+                // Display configured models
+                UI.table([
+                    { label: 'Opus', value: config.models.opus },
+                    { label: 'Sonnet', value: config.models.sonnet },
+                    { label: 'Haiku', value: config.models.haiku }
+                ]);
+            } else {
+                UI.info('Claude Code settings not updated (use manual configuration)');
+                UI.hint(`Set ANTHROPIC_BASE_URL=${proxyUrl} in your Claude Code settings`);
+            }
 
             UI.success('Claude Adapter is ready!');
             UI.info('Open a new terminal tab and run Claude Code.');
