@@ -22,7 +22,7 @@
 ---
 
 ## Overview
-Unlock the full potential of Claude Code using **Claude Adapter**S. It seamlessly connects Anthropic's powerful CLI to DeepSeek, GPT-Codex, Grok, and any OpenAI-compatible provider.
+Unlock the full potential of Claude Code using **Claude Adapter**. It seamlessly connects Anthropic's powerful CLI to DeepSeek, GPT-Codex, Grok, and any OpenAI-compatible provider.
 
 This adapter effectively "tricks" Claude Code into communicating with models it was not natively designed to support, handling all necessary protocol translations, header modifications, and payload restructuring in real-time.
 
