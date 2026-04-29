@@ -90,6 +90,12 @@ npm install -g claude-adapter
 
 ## Configuration
 
+Runtime configuration priority:
+
+`ANTHROPIC_*` environment variables > `~/.claude-adapter/config.json` > interactive prompt.
+
+Environment variables are runtime-only overrides. They are not persisted back to `~/.claude-adapter/config.json`.
+
 ### CLI Options
 
 The CLI accepts several flags to customize runtime behavior:
@@ -111,6 +117,29 @@ The core of the adapter's flexibility lies in its ability to map Claude's expect
 | `opus`      | Complex reasoning | `gpt-5.2-codex`, `glm-4.7`     |
 | `sonnet`    | Balanced tasks    | `deepseek-3.2`, `minimax-m2.1` |
 | `haiku`     | Low-latency ops   | `gpt-5-mini`, `gpt-oss-120b`   |
+
+### Runtime Environment Variable Mapping
+
+These variables can override startup configuration for the current process:
+
+| Environment Variable | Runtime Target |
+| -------------------- | -------------- |
+| `ANTHROPIC_BASE_URL` | `baseUrl` |
+| `ANTHROPIC_API_KEY` | `apiKey` (highest priority) |
+| `ANTHROPIC_AUTH_TOKEN` | `apiKey` fallback when `ANTHROPIC_API_KEY` is absent |
+| `ANTHROPIC_DEFAULT_OPUS_MODEL` | `models.opus` |
+| `ANTHROPIC_DEFAULT_SONNET_MODEL` | `models.sonnet` |
+| `ANTHROPIC_DEFAULT_HAIKU_MODEL` | `models.haiku` |
+| `ANTHROPIC_DEFAULT_MODEL` | fallback model for unset opus/sonnet/haiku |
+
+Example:
+
+```bash
+ANTHROPIC_BASE_URL=https://api.openai.com/v1 \
+ANTHROPIC_API_KEY=sk-*** \
+ANTHROPIC_DEFAULT_MODEL=gpt-5-mini \
+claude-adapter --no-claude-settings
+```
 
 ---
 
