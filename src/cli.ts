@@ -13,9 +13,28 @@ import { createServer, findAvailablePort } from './server';
 import { UI } from './utils/ui';
 import { checkForUpdates } from './utils/update';
 import { getMetadata } from './utils/metadata';
+import { resolveRuntimeConfig } from './utils/runtimeConfig';
 import { version } from '../package.json';
 
 const program = new Command();
+
+interface CliOptions {
+    port: string;
+    reconfigure?: boolean;
+    claudeSettings: boolean;
+}
+
+function isValidUrl(input: string | undefined): boolean {
+    if (!input) {
+        return false;
+    }
+    try {
+        new URL(input);
+        return true;
+    } catch {
+        return false;
+    }
+}
 
 program
     .name('claude-adapter')
@@ -26,7 +45,7 @@ program
     .option('-p, --port <port>', 'Port to run the proxy server on', '3080')
     .option('-r, --reconfigure', 'Force reconfiguration even if config exists')
     .option('--no-claude-settings', 'Skip updating Claude Code settings files')
-    .action(async (options) => {
+    .action(async (options: CliOptions) => {
         UI.banner();
         UI.header('Adapt any model for Claude Code');
 
@@ -42,10 +61,18 @@ program
                 UI.info('Skipping Claude settings update (--no-claude-settings)');
             }
 
-            // Step 2: Load or create configuration
-            let config = loadConfig();
+            // Step 2: Load file config and resolve runtime config using env > file > prompt
+            const fileConfig = loadConfig();
+            const resolvedRuntime = resolveRuntimeConfig(fileConfig, process.env);
+            let config = resolvedRuntime.config as AdapterConfig | null;
 
-            if (!config || options.reconfigure) {
+            if (
+                !config ||
+                options.reconfigure ||
+                !isValidUrl(config.baseUrl) ||
+                !config.apiKey ||
+                !config.models?.opus
+            ) {
                 UI.log(''); // Spacing
                 config = await promptForConfiguration();
                 saveConfig(config);
@@ -56,13 +83,22 @@ program
                 UI.log(''); // Spacing
                 const toolStyle = await promptForToolCallingStyle();
                 config.toolFormat = toolStyle;
-                saveConfig(config);
+                if (fileConfig) {
+                    saveConfig({ ...fileConfig, toolFormat: toolStyle });
+                }
                 console.log(`\x1b[2m✔\x1b[0m Tool Format: ${UI.dim(`[${config.toolFormat.toUpperCase()}]`)}`);
                 UI.info('Tool calling preference saved');
             } else {
                 UI.info('Using existing configuration');
                 console.log(`\x1b[2m✔\x1b[0m Tool Format: ${UI.dim(`[${config.toolFormat.toUpperCase()}]`)}`);
             }
+
+            for (const warning of resolvedRuntime.warnings) {
+                UI.info(warning);
+            }
+            UI.info(
+                `Config source: baseUrl=${resolvedRuntime.sources.baseUrl}, apiKey=${resolvedRuntime.sources.apiKey}, models(opus=${resolvedRuntime.sources.models.opus}, sonnet=${resolvedRuntime.sources.models.sonnet}, haiku=${resolvedRuntime.sources.models.haiku})`
+            );
 
             // Step 3: Find available port and start server
             const preferredPort = parseInt(options.port, 10) || 3080;
