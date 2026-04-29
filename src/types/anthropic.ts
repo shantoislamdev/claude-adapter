@@ -31,11 +31,21 @@ export interface AnthropicSystemContent {
 }
 
 // Content blocks in responses
-export type AnthropicContentBlock = AnthropicTextBlock | AnthropicToolUseBlock | AnthropicToolResultBlock;
+export type AnthropicContentBlock =
+    | AnthropicTextBlock
+    | AnthropicThinkingBlock
+    | AnthropicToolUseBlock
+    | AnthropicToolResultBlock;
 
 export interface AnthropicTextBlock {
     type: 'text';
     text: string;
+}
+
+export interface AnthropicThinkingBlock {
+    type: 'thinking';
+    thinking: string;
+    signature?: string;
 }
 
 export interface AnthropicToolUseBlock {
@@ -112,7 +122,7 @@ export interface AnthropicContentBlockStartEvent {
 export interface AnthropicContentBlockDeltaEvent {
     type: 'content_block_delta';
     index: number;
-    delta: AnthropicTextDelta | AnthropicInputJsonDelta;
+    delta: AnthropicTextDelta | AnthropicInputJsonDelta | AnthropicThinkingDelta | AnthropicSignatureDelta;
 }
 
 export interface AnthropicTextDelta {
@@ -123,6 +133,16 @@ export interface AnthropicTextDelta {
 export interface AnthropicInputJsonDelta {
     type: 'input_json_delta';
     partial_json: string;
+}
+
+export interface AnthropicThinkingDelta {
+    type: 'thinking_delta';
+    thinking: string;
+}
+
+export interface AnthropicSignatureDelta {
+    type: 'signature_delta';
+    signature: string;
 }
 
 export interface AnthropicContentBlockStopEvent {

@@ -40,6 +40,9 @@ export interface OpenAIAssistantMessage {
     role: 'assistant';
     content: string | null;
     tool_calls?: OpenAIToolCall[];
+    reasoning_content?: string;
+    reasoning_signature?: string;
+    signature?: string;
 }
 
 export interface OpenAIToolMessage {
@@ -140,6 +143,9 @@ export interface OpenAIStreamChoice {
 export interface OpenAIStreamDelta {
     role?: 'assistant';
     content?: string;
+    reasoning_content?: string;
+    reasoning_signature?: string;
+    signature?: string;
     tool_calls?: OpenAIStreamToolCall[];
 }
 
