@@ -22,6 +22,15 @@ export function convertResponseToAnthropic(
     // Build content blocks
     const content: AnthropicContentBlock[] = [];
 
+    if (message.reasoning_content) {
+        const signature = (message as any).reasoning_signature ?? (message as any).signature;
+        content.push({
+            type: 'thinking',
+            thinking: message.reasoning_content,
+            ...(signature ? { signature } : {}),
+        });
+    }
+
     // Add text content if present
     if (message.content) {
         content.push({

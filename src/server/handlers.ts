@@ -102,10 +102,14 @@ async function handleNonStreamingRequest(
 ): Promise<void> {
     log.debug('Making non-streaming request');
 
-    const response = await openai.chat.completions.create({
-        ...openaiRequest,
-        stream: false,
-    });
+    const response = await createCompletionWithReasoningFallback(
+        openai,
+        {
+            ...openaiRequest,
+            stream: false,
+        },
+        log
+    );
 
     log.debug('Response received', {
         finishReason: response.choices[0]?.finish_reason,
@@ -142,10 +146,14 @@ async function handleStreamingRequest(
 ): Promise<void> {
     log.debug('Making streaming request');
 
-    const stream = await openai.chat.completions.create({
-        ...openaiRequest,
-        stream: true,
-    } as OpenAI.ChatCompletionCreateParamsStreaming);
+    const stream = await createCompletionWithReasoningFallback(
+        openai,
+        {
+            ...openaiRequest,
+            stream: true,
+        } as OpenAI.ChatCompletionCreateParamsStreaming,
+        log
+    );
 
     await streamOpenAIToAnthropic(stream as any, reply, originalModel, provider);
     log.debug('Streaming completed');
@@ -164,10 +172,14 @@ async function handleXmlStreamingRequest(
 ): Promise<void> {
     log.debug('Making XML streaming request (experimental)');
 
-    const stream = await openai.chat.completions.create({
-        ...openaiRequest,
-        stream: true,
-    } as OpenAI.ChatCompletionCreateParamsStreaming);
+    const stream = await createCompletionWithReasoningFallback(
+        openai,
+        {
+            ...openaiRequest,
+            stream: true,
+        } as OpenAI.ChatCompletionCreateParamsStreaming,
+        log
+    );
 
     await streamXmlOpenAIToAnthropic(stream as any, reply, originalModel, provider);
     log.debug('XML streaming completed');
@@ -198,6 +210,81 @@ function handleError(
 
     const errorResponse = createErrorResponse(error, statusCode);
     reply.code(errorResponse.status).send({ error: errorResponse.error });
+}
+
+function hasReasoningContent(messages: any[]): boolean {
+    return messages.some(msg =>
+        msg?.role === 'assistant' && (
+            (typeof msg?.reasoning_content === 'string' && msg.reasoning_content.length > 0) ||
+            (typeof msg?.reasoning_signature === 'string' && msg.reasoning_signature.length > 0) ||
+            (typeof msg?.signature === 'string' && msg.signature.length > 0)
+        )
+    );
+}
+
+function stripReasoningContent(request: any): any {
+    if (!Array.isArray(request?.messages)) {
+        return request;
+    }
+
+    return {
+        ...request,
+        messages: request.messages.map((msg: any) => {
+            if (msg?.role !== 'assistant' || !Object.prototype.hasOwnProperty.call(msg, 'reasoning_content')) {
+                if (!Object.prototype.hasOwnProperty.call(msg, 'reasoning_signature') && !Object.prototype.hasOwnProperty.call(msg, 'signature')) {
+                    return msg;
+                }
+            }
+
+            const { reasoning_content, reasoning_signature, signature, ...rest } = msg;
+            return rest;
+        }),
+    };
+}
+
+function isReasoningContentValidationError(error: any): boolean {
+    const status = error?.status;
+    if (status !== 400 && status !== 422) {
+        return false;
+    }
+
+    const directMessage = typeof error?.message === 'string' ? error.message : '';
+    const bodyMessage = typeof error?.error?.message === 'string' ? error.error.message : '';
+    const serialized = JSON.stringify(error?.error ?? error?.response ?? error?.body ?? '');
+    const merged = `${directMessage} ${bodyMessage} ${serialized}`.toLowerCase();
+
+    if (merged.includes('must be passed back') && merged.includes('thinking mode')) {
+        return true;
+    }
+
+    if (merged.includes('reasoning_content') && (
+        merged.includes('unknown field') ||
+        merged.includes('invalid') ||
+        merged.includes('not allowed') ||
+        merged.includes('should not include')
+    )) {
+        return true;
+    }
+
+    return false;
+}
+
+async function createCompletionWithReasoningFallback(
+    openai: OpenAI,
+    request: any,
+    log: RequestLogger
+): Promise<any> {
+    try {
+        return await openai.chat.completions.create(request);
+    } catch (error) {
+        if (!hasReasoningContent(request.messages || []) || !isReasoningContentValidationError(error)) {
+            throw error;
+        }
+
+        log.warn('Provider rejected reasoning_content; retrying once without reasoning_content');
+        const downgradedRequest = stripReasoningContent(request);
+        return openai.chat.completions.create(downgradedRequest);
+    }
 }
 
 
