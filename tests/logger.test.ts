@@ -150,6 +150,12 @@ describe('Logger', () => {
       expect(typeof reqLogger.print).toBe('function');
     });
 
+    it('should print with request ID using parent print', () => {
+      const reqLogger = testLogger.withRequestId('req_print');
+      reqLogger.print('Direct print');
+      expect(consoleLogSpy).toHaveBeenCalledWith('Direct print');
+    });
+
     it('should log debug with request ID', () => {
       testLogger.setLevel(LogLevel.DEBUG);
       const reqLogger = testLogger.withRequestId('req_debug');
