@@ -76,6 +76,17 @@ describe('Metadata Utilities', () => {
             expect(first.userId).toBe(second.userId);
             expect(first.createdAt).toBe(second.createdAt);
         });
+
+        it('should update currentVersion if it has changed', () => {
+            const first = getMetadata();
+            // Mock a different current version
+            first.currentVersion = 'old-version';
+            writeFileSync(METADATA_FILE, JSON.stringify(first));
+            clearCachedMetadata();
+
+            const second = getMetadata();
+            expect(second.currentVersion).not.toBe('old-version');
+        });
     });
 
     describe('updateLatestVersion', () => {
@@ -89,13 +100,46 @@ describe('Metadata Utilities', () => {
             expect(cached?.version).toBe('2.0.0');
             expect(cached?.timestamp).toBeDefined();
         });
+
+        it('should handle errors gracefully when saving fails', () => {
+            // Create an unwritable directory to force writeFileSync to throw
+            const metadataPath = join(TEST_DIR, '.claude-adapter', 'metadata.json');
+            if (existsSync(metadataPath)) {
+                rmSync(metadataPath);
+            }
+            mkdirSync(metadataPath); // metadata.json is now a directory, writes will fail
+
+            expect(() => updateLatestVersion('2.0.0')).not.toThrow();
+        });
+
+        it('should handle errors when loading returns null', () => {
+            // Delete the metadata file, clear cache, update version
+            const metadataPath = join(TEST_DIR, '.claude-adapter', 'metadata.json');
+            if(existsSync(metadataPath)) rmSync(metadataPath, { recursive: true, force: true });
+            clearCachedMetadata();
+
+            expect(() => updateLatestVersion('2.0.0')).not.toThrow();
+        });
+
+        it('should handle errors gracefully when loading metadata fails', () => {
+            // Write invalid JSON to force a parse error
+            const metadataPathOld = join(TEST_DIR, '.claude-adapter', 'metadata.json');
+            if(existsSync(metadataPathOld)) rmSync(metadataPathOld, { recursive: true, force: true });
+
+            const metadataPath = join(TEST_DIR, '.claude-adapter', 'metadata.json');
+            writeFileSync(metadataPath, 'invalid json');
+            clearCachedMetadata();
+
+            // Should not throw
+            expect(() => updateLatestVersion('2.0.0')).not.toThrow();
+        });
     });
 
     describe('getCachedLatestVersion', () => {
         it('should return null if no version cached', () => {
             const metadataPath = join(TEST_DIR, '.claude-adapter', 'metadata.json');
             if (existsSync(metadataPath)) {
-                rmSync(metadataPath);
+                rmSync(metadataPath, { recursive: true, force: true });
             }
 
             // Create metadata without latestVersion
@@ -106,6 +150,29 @@ describe('Metadata Utilities', () => {
             const content = readFileSync(metadataPath, 'utf-8');
             const metadata = JSON.parse(content);
             expect(metadata.latestVersion).toBeUndefined();
+        });
+
+        it('should return null if cache is invalid or throws error', () => {
+            const metadataPath = join(TEST_DIR, '.claude-adapter', 'metadata.json');
+
+            // Write invalid JSON to force a parse error
+            writeFileSync(metadataPath, 'invalid json');
+            clearCachedMetadata();
+
+            const cached = getCachedLatestVersion();
+            expect(cached).toBeNull();
+        });
+
+        it('should handle errors when getCachedLatestVersion encounters an error', () => {
+            const metadataPath = join(TEST_DIR, '.claude-adapter', 'metadata.json');
+            if (existsSync(metadataPath)) rmSync(metadataPath, { recursive: true, force: true });
+            mkdirSync(metadataPath); // Forces read error
+            clearCachedMetadata();
+
+            expect(getCachedLatestVersion()).toBeNull();
+
+            // cleanup
+            rmSync(metadataPath, { recursive: true, force: true });
         });
 
         it('should return cached version if available', () => {
