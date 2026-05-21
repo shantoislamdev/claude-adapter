@@ -205,16 +205,18 @@ function convertMessage(
 
       if (toolFormat === 'xml') {
         // XML Mode: Flatten tool results into the user message text
-        let flatContent = '';
+        const contentParts: string[] = [];
 
         // Add regular user text
         for (const part of userContent) {
           if (part.type === 'text') {
-            flatContent += part.text;
+            contentParts.push(part.text);
           }
           // Images sent as text in XML mode (fallback) or omitted if not supported
           // For now, we only handle text
         }
+
+        let flatContent = contentParts.join('');
 
         // Add tool results as XML blocks
         if (toolResults.length > 0) {
