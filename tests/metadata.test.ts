@@ -18,7 +18,7 @@ jest.mock('os', () => {
 });
 
 // Import after mocking
-import { getMetadata, updateLatestVersion, getCachedLatestVersion } from '../src/utils/metadata';
+import { getMetadata, updateLatestVersion, getCachedLatestVersion, clearMetadataCache } from '../src/utils/metadata';
 
 describe('Metadata Utilities', () => {
     beforeEach(() => {
@@ -43,6 +43,7 @@ describe('Metadata Utilities', () => {
         } catch {
             // Ignore cleanup errors
         }
+        clearMetadataCache();
     });
 
     afterAll(() => {
