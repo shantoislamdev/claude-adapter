@@ -18,6 +18,8 @@ export interface Metadata {
 const METADATA_DIR = join(homedir(), '.claude-adapter');
 const METADATA_FILE = join(METADATA_DIR, 'metadata.json');
 
+let cachedMetadata: Metadata | null = null;
+
 /**
  * Generate a unique user ID
  */
@@ -45,11 +47,13 @@ function ensureMetadataDir(): void {
  * Load metadata from file
  */
 function loadMetadata(): Metadata | null {
+    if (cachedMetadata) {
+        return cachedMetadata;
+    }
     try {
-        if (existsSync(METADATA_FILE)) {
-            const data = readFileSync(METADATA_FILE, 'utf-8');
-            return JSON.parse(data);
-        }
+        const data = readFileSync(METADATA_FILE, 'utf-8');
+        cachedMetadata = JSON.parse(data);
+        return cachedMetadata;
     } catch {
         // Ignore read errors
     }
@@ -63,6 +67,7 @@ function saveMetadata(metadata: Metadata): void {
     try {
         ensureMetadataDir();
         writeFileSync(METADATA_FILE, JSON.stringify(metadata, null, 2));
+        cachedMetadata = metadata;
     } catch {
         // Ignore write errors
     }
@@ -128,4 +133,12 @@ export function getCachedLatestVersion(): { version: string; timestamp: number }
         // Ignore errors
     }
     return null;
+}
+
+/**
+ * Clear cached metadata (primarily for testing)
+ * @internal
+ */
+export function clearCachedMetadata(): void {
+    cachedMetadata = null;
 }
