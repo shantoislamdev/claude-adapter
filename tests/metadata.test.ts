@@ -121,6 +121,23 @@ describe('Metadata Utilities', () => {
             expect(() => updateLatestVersion('2.0.0')).not.toThrow();
         });
 
+        it('should not mutate cache if saving fails', () => {
+            // Pre-load the cache
+            getMetadata();
+
+            // Make directory unwritable
+            const metadataPath = join(TEST_DIR, '.claude-adapter', 'metadata.json');
+            if (existsSync(metadataPath)) rmSync(metadataPath);
+            mkdirSync(metadataPath); // Forces save error
+
+            // Try to update which will fail the write
+            updateLatestVersion('2.0.0');
+
+            // Cache should not reflect the mutated change since it wasn't successfully saved
+            const cached = getCachedLatestVersion();
+            expect(cached).toBeNull();
+        });
+
         it('should handle errors gracefully when loading metadata fails', () => {
             // Write invalid JSON to force a parse error
             const metadataPathOld = join(TEST_DIR, '.claude-adapter', 'metadata.json');

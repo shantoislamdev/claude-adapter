@@ -48,12 +48,12 @@ function ensureMetadataDir(): void {
  */
 function loadMetadata(): Metadata | null {
     if (cachedMetadata) {
-        return cachedMetadata;
+        return { ...cachedMetadata };
     }
     try {
         const data = readFileSync(METADATA_FILE, 'utf-8');
         cachedMetadata = JSON.parse(data);
-        return cachedMetadata;
+        return cachedMetadata ? { ...cachedMetadata } : null;
     } catch {
         // Ignore read errors
     }
@@ -67,7 +67,7 @@ function saveMetadata(metadata: Metadata): void {
     try {
         ensureMetadataDir();
         writeFileSync(METADATA_FILE, JSON.stringify(metadata, null, 2));
-        cachedMetadata = metadata;
+        cachedMetadata = { ...metadata };
     } catch {
         // Ignore write errors
     }
