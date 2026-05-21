@@ -55,6 +55,61 @@ describe('Metadata Utilities', () => {
         }
     });
 
+    describe('ensureMetadataDir error handling', () => {
+        it('should handle ensureMetadataDir errors gracefully', () => {
+            clearMetadataCache();
+            const adapterDir = join(TEST_DIR, '.claude-adapter');
+            if (existsSync(adapterDir)) {
+                rmSync(adapterDir, { recursive: true });
+            }
+            writeFileSync(adapterDir, 'file-not-dir'); // Create a file instead of dir to trigger mkdirSync error
+            getMetadata();
+            rmSync(adapterDir); // cleanup
+        });
+    });
+
+    describe('loadMetadata error handling', () => {
+        it('should handle read errors gracefully', () => {
+            clearMetadataCache();
+            // Create an invalid JSON file to trigger a parse error
+            const metadataPath = join(TEST_DIR, '.claude-adapter', 'metadata.json');
+            writeFileSync(metadataPath, 'invalid-json');
+            const metadata = getMetadata();
+            expect(metadata).toBeDefined();
+        });
+    });
+
+    describe('saveMetadata error handling', () => {
+        it('should handle write errors gracefully', () => {
+            clearMetadataCache();
+            getMetadata(); // Create a valid cache first
+            const metadataPath = join(TEST_DIR, '.claude-adapter', 'metadata.json');
+            // Replace file with directory to trigger write error
+            rmSync(metadataPath);
+            mkdirSync(metadataPath, { recursive: true });
+            updateLatestVersion('3.0.0');
+            rmSync(metadataPath, { recursive: true });
+        });
+    });
+
+    describe('updateLatestVersion error handling', () => {
+        it('should handle loadMetadata errors gracefully during updateLatestVersion', () => {
+            clearMetadataCache();
+            const metadataPath = join(TEST_DIR, '.claude-adapter', 'metadata.json');
+            writeFileSync(metadataPath, 'invalid-json');
+            updateLatestVersion('3.0.0');
+        });
+    });
+
+    describe('getCachedLatestVersion error handling', () => {
+        it('should handle loadMetadata errors gracefully during getCachedLatestVersion', () => {
+            clearMetadataCache();
+            const metadataPath = join(TEST_DIR, '.claude-adapter', 'metadata.json');
+            writeFileSync(metadataPath, 'invalid-json');
+            expect(getCachedLatestVersion()).toBeNull();
+        });
+    });
+
     describe('getMetadata', () => {
         it('should create new metadata on first run', () => {
             const metadata = getMetadata();
@@ -92,6 +147,7 @@ describe('Metadata Utilities', () => {
 
     describe('getCachedLatestVersion', () => {
         it('should return null if no version cached', () => {
+            clearMetadataCache();
             const metadataPath = join(TEST_DIR, '.claude-adapter', 'metadata.json');
             if (existsSync(metadataPath)) {
                 rmSync(metadataPath);
