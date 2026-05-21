@@ -41,16 +41,22 @@ function ensureMetadataDir(): void {
     }
 }
 
+let cachedMetadata: Metadata | null = null;
+
 /**
  * Load metadata from file
  */
 function loadMetadata(): Metadata | null {
+    if (cachedMetadata) {
+        return cachedMetadata;
+    }
     try {
         if (existsSync(METADATA_FILE)) {
             const data = readFileSync(METADATA_FILE, 'utf-8');
-            return JSON.parse(data);
+            cachedMetadata = JSON.parse(data);
+            return cachedMetadata;
         }
-    } catch {
+    } catch (e) {
         // Ignore read errors
     }
     return null;
@@ -63,9 +69,17 @@ function saveMetadata(metadata: Metadata): void {
     try {
         ensureMetadataDir();
         writeFileSync(METADATA_FILE, JSON.stringify(metadata, null, 2));
+        cachedMetadata = metadata;
     } catch {
         // Ignore write errors
     }
+}
+
+/**
+ * Clear metadata cache (used for testing)
+ */
+export function clearMetadataCache(): void {
+    cachedMetadata = null;
 }
 
 /**
