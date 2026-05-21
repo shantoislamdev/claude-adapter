@@ -140,5 +140,17 @@ describe('UI Utility Class', () => {
             // Banner has multiple art lines
             expect(mockConsoleLog.mock.calls.length).toBeGreaterThanOrEqual(5);
         });
+
+        it('should display update notification', () => {
+            UI.updateNotify('1.0.0', '1.1.0');
+            expect(mockConsoleLog).toHaveBeenCalledTimes(3);
+            expect(mockConsoleLog.mock.calls[0][0]).toBe('');
+            const updateMessage = mockConsoleLog.mock.calls[1][0];
+            expect(updateMessage).toContain('Update available:');
+            expect(updateMessage).toContain('1.0.0');
+            expect(updateMessage).toContain('1.1.0');
+            const hintMessage = mockConsoleLog.mock.calls[2][0];
+            expect(hintMessage).toContain('Run "npm i -g claude-adapter" to update');
+        });
     });
 });
