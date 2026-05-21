@@ -18,7 +18,7 @@ jest.mock('os', () => {
 });
 
 // Import after mocking
-import { getMetadata, updateLatestVersion, getCachedLatestVersion } from '../src/utils/metadata';
+import { getMetadata, updateLatestVersion, getCachedLatestVersion, clearCachedMetadata } from '../src/utils/metadata';
 
 describe('Metadata Utilities', () => {
     beforeEach(() => {
@@ -31,6 +31,8 @@ describe('Metadata Utilities', () => {
         if (!existsSync(adapterDir)) {
             mkdirSync(adapterDir, { recursive: true });
         }
+
+        clearCachedMetadata();
     });
 
     afterEach(() => {
