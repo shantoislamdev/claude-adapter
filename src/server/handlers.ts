@@ -4,6 +4,7 @@ import OpenAI from 'openai';
 import { AnthropicMessageRequest } from '../types/anthropic';
 import { AdapterConfig } from '../types/config';
 import { convertRequestToOpenAI } from '../converters/request';
+import { isAzureOpenAIEndpoint } from '../utils/provider';
 import { convertResponseToAnthropic, createErrorResponse } from '../converters/response';
 import { streamOpenAIToAnthropic } from '../converters/streaming';
 import { streamXmlOpenAIToAnthropic } from '../converters/xmlStreaming';
@@ -26,6 +27,7 @@ function generateRequestId(): string {
  * Handle POST /v1/messages requests
  */
 export function createMessagesHandler(config: AdapterConfig) {
+    const isAzure = isAzureOpenAIEndpoint(config.baseUrl);
     const openai = new OpenAI({
         baseURL: config.baseUrl,
         apiKey: config.apiKey,
@@ -59,7 +61,7 @@ export function createMessagesHandler(config: AdapterConfig) {
             const toolStyle = config.toolFormat || 'native';
 
             // Convert request to OpenAI format
-            const openaiRequest = convertRequestToOpenAI(anthropicRequest, targetModel, toolStyle);
+            const openaiRequest = convertRequestToOpenAI(anthropicRequest, targetModel, toolStyle, isAzure);
 
             // Log tool calling mode when tools are present
             if (toolStyle === 'xml' && anthropicRequest.tools?.length) {

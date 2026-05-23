@@ -1,6 +1,7 @@
 // Tests for request converter: Anthropic → OpenAI
 import { convertRequestToOpenAI } from '../src/converters/request';
 import { AnthropicMessageRequest } from '../src/types/anthropic';
+import { isAzureOpenAIEndpoint } from '../src/utils/provider';
 
 // Mock update utility
 jest.mock('../src/utils/update', () => ({
@@ -29,11 +30,49 @@ describe('Request Converter', () => {
 
             expect(result.model).toBe('gpt-5.2-codex');
             expect(result.max_tokens).toBe(1024);
+            expect(result.max_completion_tokens).toBeUndefined();
             expect(result.messages).toHaveLength(1);
             expect(result.messages[0]).toEqual({
                 role: 'user',
                 content: 'Hello, how are you?'
             });
+        });
+
+        it('should convert max tokens to max completion tokens for Azure OpenAI', () => {
+            const anthropicRequest: AnthropicMessageRequest = {
+                model: 'claude-4.5-sonnet',
+                max_tokens: 1024,
+                messages: [
+                    { role: 'user', content: 'Hello, how are you?' }
+                ]
+            };
+
+            const result = convertRequestToOpenAI(anthropicRequest, 'gpt-5.2-codex', 'native', true);
+
+            expect(result.max_completion_tokens).toBe(1024);
+            expect(result.max_tokens).toBeUndefined();
+        });
+
+        it('should convert Azure max tokens of 1 to max completion tokens of 32', () => {
+            const anthropicRequest: AnthropicMessageRequest = {
+                model: 'claude-4.5-sonnet',
+                max_tokens: 1,
+                messages: [
+                    { role: 'user', content: 'Ping' }
+                ]
+            };
+
+            const result = convertRequestToOpenAI(anthropicRequest, 'gpt-5.2-codex', 'native', true);
+
+            expect(result.max_completion_tokens).toBe(32);
+            expect(result.max_tokens).toBeUndefined();
+        });
+
+        it('should detect Azure OpenAI endpoints', () => {
+            expect(isAzureOpenAIEndpoint('https://example.openai.azure.com/openai/v1')).toBe(true);
+            expect(isAzureOpenAIEndpoint('https://example.services.ai.azure.com/models')).toBe(true);
+            expect(isAzureOpenAIEndpoint('https://api.openai.com/v1')).toBe(false);
+            expect(isAzureOpenAIEndpoint('not a url')).toBe(false);
         });
 
         it('should convert system prompt to system message', () => {
