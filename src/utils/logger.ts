@@ -56,16 +56,16 @@ class Logger {
     if (level < this.level) return;
 
     let output: string;
+    const color = levelColors[level];
 
     // Use simple format for INFO in non-debug mode
     if (level === LogLevel.INFO && this.level > LogLevel.DEBUG) {
-      output = message;
+      output = `${color}${message}${RESET}`;
       if (meta && Object.keys(meta).length > 0) {
-        output += ` ${JSON.stringify(meta)}`;
+        output += ` ${color}${JSON.stringify(meta)}${RESET}`;
       }
     } else {
       // Full format with timestamp for DEBUG or when in debug mode
-      const color = levelColors[level];
       const levelName = levelNames[level].padEnd(5);
       const timestamp = this.formatTimestamp();
       output = `${color}[${timestamp}] [${this.prefix}] ${levelName}${RESET} ${message}`;
