@@ -105,16 +105,26 @@ describe('Request Validation', () => {
             expect(result.errors.some(e => e.field.includes('role'))).toBe(true);
         });
 
-        it('should reject invalid message role', () => {
+        it('should accept unknown message roles for forward compatibility', () => {
             const request = {
                 model: 'claude-4-opus',
                 max_tokens: 1024,
-                messages: [{ role: 'invalid', content: 'Hello' }]
+                messages: [{ role: 'unknown_role', content: 'Hello' }]
             };
 
             const result = validateAnthropicRequest(request);
-            expect(result.valid).toBe(false);
-            expect(result.errors.some(e => e.field.includes('role'))).toBe(true);
+            expect(result.valid).toBe(true);
+        });
+
+        it('should accept messages with missing content', () => {
+            const request = {
+                model: 'claude-4-opus',
+                max_tokens: 1024,
+                messages: [{ role: 'user' }]
+            };
+
+            const result = validateAnthropicRequest(request);
+            expect(result.valid).toBe(true);
         });
 
         it('should reject non-object message in array', () => {
@@ -127,18 +137,6 @@ describe('Request Validation', () => {
             const result = validateAnthropicRequest(request);
             expect(result.valid).toBe(false);
             expect(result.errors.some(e => e.field.includes('messages['))).toBe(true);
-        });
-
-        it('should reject missing content', () => {
-            const request = {
-                model: 'claude-4-opus',
-                max_tokens: 1024,
-                messages: [{ role: 'user' }]
-            };
-
-            const result = validateAnthropicRequest(request);
-            expect(result.valid).toBe(false);
-            expect(result.errors.some(e => e.field.includes('content'))).toBe(true);
         });
 
         it('should accept content as array', () => {

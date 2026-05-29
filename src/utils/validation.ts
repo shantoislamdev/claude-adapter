@@ -85,21 +85,22 @@ function validateMessages(messages: unknown[]): ValidationError[] {
 
         const message = msg as Record<string, unknown>;
 
-        // Validate role
+        // Validate role - accept any string role for forward compatibility
+        // Claude Code may introduce new roles (e.g., from session-start hooks)
+        // The converter will map unknown roles to valid OpenAI roles downstream
         if (!message.role || typeof message.role !== 'string') {
             errors.push({ field: `messages[${i}].role`, message: 'role is required and must be a string' });
-        } else if (!['user', 'assistant'].includes(message.role)) {
-            errors.push({ field: `messages[${i}].role`, message: 'role must be "user" or "assistant"' });
         }
 
-        // Validate content
-        if (message.content === undefined || message.content === null) {
-            errors.push({ field: `messages[${i}].content`, message: 'content is required' });
-        } else if (typeof message.content !== 'string' && !Array.isArray(message.content)) {
-            errors.push({ field: `messages[${i}].content`, message: 'content must be a string or array' });
-        } else if (Array.isArray(message.content)) {
-            const contentErrors = validateContentBlocks(message.content, i);
-            errors.push(...contentErrors);
+        // Validate content - allow missing/empty content for forward compatibility
+        // Some message types (e.g., hook attachments) may have minimal content
+        if (message.content !== undefined && message.content !== null) {
+            if (typeof message.content !== 'string' && !Array.isArray(message.content)) {
+                errors.push({ field: `messages[${i}].content`, message: 'content must be a string or array' });
+            } else if (Array.isArray(message.content)) {
+                const contentErrors = validateContentBlocks(message.content, i);
+                errors.push(...contentErrors);
+            }
         }
     }
 

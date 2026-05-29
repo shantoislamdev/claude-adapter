@@ -18,8 +18,8 @@ export interface AnthropicMessageRequest {
 }
 
 export interface AnthropicMessage {
-    role: 'user' | 'assistant';
-    content: string | AnthropicContentBlock[];
+    role: string;
+    content?: string | AnthropicContentBlock[];
 }
 
 export interface AnthropicSystemContent {

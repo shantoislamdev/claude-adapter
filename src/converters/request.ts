@@ -197,6 +197,10 @@ function convertMessage(
             }
             result.push({ role: 'assistant', content: msg.content });
         }
+    } else if (!msg.content) {
+        // Missing or null content — skip the message entirely.
+        // Some Claude Code message types (e.g., hook attachments) may have no content.
+        return result;
     } else {
         // Array of content blocks
         if (msg.role === 'user') {

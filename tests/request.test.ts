@@ -94,6 +94,45 @@ describe('Request Converter', () => {
             expect(result.messages[2].role).toBe('user');
         });
 
+        it('should map unknown roles to assistant', () => {
+            const anthropicRequest: AnthropicMessageRequest = {
+                model: 'claude-4.5-sonnet',
+                max_tokens: 1024,
+                messages: [
+                    { role: 'user', content: 'Hello' },
+                    { role: 'unknown', content: 'Some injected context' },
+                    { role: 'user', content: 'Follow up' }
+                ]
+            } as AnthropicMessageRequest;
+
+            const result = convertRequestToOpenAI(anthropicRequest, 'gpt-4');
+
+            expect(result.messages).toHaveLength(3);
+            expect(result.messages[1].role).toBe('assistant');
+            expect(result.messages[1].content).toBe('Some injected context');
+        });
+
+        it('should skip messages with undefined content', () => {
+            const anthropicRequest: AnthropicMessageRequest = {
+                model: 'claude-4.5-sonnet',
+                max_tokens: 1024,
+                messages: [
+                    { role: 'user', content: 'Hello' },
+                    { role: 'assistant', content: undefined as unknown as string },
+                    { role: 'user', content: 'Follow up' }
+                ]
+            } as AnthropicMessageRequest;
+
+            const result = convertRequestToOpenAI(anthropicRequest, 'gpt-4');
+
+            // Message with undefined content should be skipped
+            expect(result.messages).toHaveLength(2);
+            expect(result.messages[0].role).toBe('user');
+            expect(result.messages[0].content).toBe('Hello');
+            expect(result.messages[1].role).toBe('user');
+            expect(result.messages[1].content).toBe('Follow up');
+        });
+
         it('should convert content blocks array in user message', () => {
             const anthropicRequest: AnthropicMessageRequest = {
                 model: 'claude-4.5-sonnet',
