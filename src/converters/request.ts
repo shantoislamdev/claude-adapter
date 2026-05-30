@@ -48,7 +48,8 @@ function modifySystemPromptForClaudeAdapter(systemContent: string): string {
 export function convertRequestToOpenAI(
     anthropicRequest: AnthropicMessageRequest,
     targetModel: string,
-    toolFormat: 'native' | 'xml' = 'native'
+    toolFormat: 'native' | 'xml' = 'native',
+    isAzureOpenAI = false
 ): OpenAIChatRequest {
     const messages: OpenAIMessage[] = [];
 
@@ -103,9 +104,14 @@ export function convertRequestToOpenAI(
     const openaiRequest: OpenAIChatRequest = {
         model: targetModel,
         messages,
-        max_tokens: maxTokens,
         stream: anthropicRequest.stream,
     };
+
+    if (isAzureOpenAI) {
+        openaiRequest.max_completion_tokens = maxTokens;
+    } else {
+        openaiRequest.max_tokens = maxTokens;
+    }
 
     // specific handling for streaming requests to include usage data
     if (anthropicRequest.stream) {

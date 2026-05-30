@@ -4,6 +4,7 @@ export interface OpenAIChatRequest {
     model: string;
     messages: OpenAIMessage[];
     max_tokens?: number;
+    max_completion_tokens?: number;
     temperature?: number;
     top_p?: number;
     n?: number;
