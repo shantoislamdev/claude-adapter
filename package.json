@@ -1,6 +1,6 @@
 {
   "name": "claude-adapter",
-  "version": "2.1.2",
+  "version": "2.2.0",
   "description": "Proxy to convert Anthropic API requests to OpenAI format for Claude Code",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

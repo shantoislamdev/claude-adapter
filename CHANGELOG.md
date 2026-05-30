@@ -6,6 +6,19 @@ The format follows **Keep a Changelog** and this project adheres to **Semantic V
 
 ---
 
+## [2.2.0] — 2026-05-30
+
+### Added
+
+- **Azure OpenAI**: Added support for `max_completion_tokens` on Azure OpenAI endpoints.
+
+### Fixed
+
+- **Claude Code**: Accepted unknown message roles and missing or empty content blocks to ensure compatibility with Claude Code v2.1.156+.
+- **Tests**: Added comprehensive test coverage for request conversion error branches, ensuring 100% patch coverage.
+
+---
+
 ## [2.1.2] — 2026-05-30
 
 ### Fixed

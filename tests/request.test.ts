@@ -172,6 +172,21 @@ describe('Request Converter', () => {
             expect(result.messages[1].content).toBe('Follow up');
         });
 
+        it('should throw an error if all messages have undefined content', () => {
+            const anthropicRequest: AnthropicMessageRequest = {
+                model: 'claude-4.5-sonnet',
+                max_tokens: 1024,
+                messages: [
+                    { role: 'user', content: undefined as unknown as string },
+                    { role: 'assistant', content: null as unknown as string }
+                ]
+            } as AnthropicMessageRequest;
+
+            expect(() => {
+                convertRequestToOpenAI(anthropicRequest, 'gpt-4');
+            }).toThrow('No messages after conversion: all input messages had missing content');
+        });
+
         it('should convert content blocks array in user message', () => {
             const anthropicRequest: AnthropicMessageRequest = {
                 model: 'claude-4.5-sonnet',
