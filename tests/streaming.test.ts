@@ -302,7 +302,7 @@ describe('Streaming Converter', () => {
 
             // This should fail if the bug exists
             expect(messageDelta!.data.usage.output_tokens).toBe(10);
-            expect(messageDelta!.data.usage.input_tokens).toBe(undefined); // input_tokens is not in message_delta usage, checking side effect
+            expect(messageDelta!.data.usage).not.toHaveProperty('input_tokens'); // input_tokens is not in message_delta usage, checking side effect
         });
 
         it('should include cached tokens in streaming usage events', async () => {
