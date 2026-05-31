@@ -195,6 +195,14 @@ claude-adapter --port 3000
 </details>
 
 <details>
+<summary><strong>DeepSeek thinking mode 400: reasoning_content must be passed back</strong></summary>
+
+DeepSeek thinking mode requires `reasoning_content` from prior assistant turns to be sent back on follow-up requests.
+
+Claude Adapter auto-detects this behavior from conversation history: if previous assistant turns include `thinking` blocks, it replays them as `reasoning_content` on follow-up requests.
+</details>
+
+<details>
 <summary><strong>Authentication Failures</strong></summary>
 
 If you encounter 401 errors, your API key may be invalid or expired. Rerun the configuration wizard:

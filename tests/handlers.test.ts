@@ -270,5 +270,101 @@ describe('Error Response Handling', () => {
             // Verify no error was thrown and function completed
             expect(mockReply.send).toHaveBeenCalled();
         });
+
+        it('should retry once without reasoning_content when provider rejects it', async () => {
+            const handler = handlersModule.createMessagesHandler(config);
+            const { convertRequestToOpenAI } = require('../src/converters/request');
+            convertRequestToOpenAI.mockReturnValueOnce({
+                model: 'gpt-4',
+                messages: [
+                    {
+                        role: 'assistant',
+                        content: 'previous answer',
+                        reasoning_content: 'hidden chain of thought',
+                        reasoning_signature: 'sig-1'
+                    },
+                    { role: 'user', content: 'follow up' }
+                ]
+            });
+
+            const firstError: any = new Error('400 The reasoning_content in the thinking mode must be passed back to the API.');
+            firstError.status = 400;
+
+            mockCreateChatCompletion
+                .mockRejectedValueOnce(firstError)
+                .mockResolvedValueOnce({
+                    id: 'chatcmpl-123',
+                    choices: [{ finish_reason: 'stop', message: { content: 'Hello' } }],
+                    usage: { prompt_tokens: 10, completion_tokens: 5 },
+                    model: 'gpt-4'
+                });
+
+            await handler({ body: { ...mockRequestBase, stream: false } }, mockReply);
+
+            expect(mockCreateChatCompletion).toHaveBeenCalledTimes(2);
+            expect(mockCreateChatCompletion.mock.calls[0][0].messages[0].reasoning_content).toBeDefined();
+            expect(mockCreateChatCompletion.mock.calls[1][0].messages[0].reasoning_content).toBeUndefined();
+            expect(mockCreateChatCompletion.mock.calls[1][0].messages[0].reasoning_signature).toBeUndefined();
+            expect(mockReply.send).toHaveBeenCalled();
+        });
+
+        it('should retry once without reasoning_content on 422 validation errors', async () => {
+            const handler = handlersModule.createMessagesHandler(config);
+            const { convertRequestToOpenAI } = require('../src/converters/request');
+            convertRequestToOpenAI.mockReturnValueOnce({
+                model: 'gpt-4',
+                messages: [
+                    {
+                        role: 'assistant',
+                        content: 'previous answer',
+                        reasoning_content: 'hidden chain of thought'
+                    },
+                    { role: 'user', content: 'follow up' }
+                ]
+            });
+
+            const firstError: any = new Error('Unprocessable entity: unknown field reasoning_content');
+            firstError.status = 422;
+
+            mockCreateChatCompletion
+                .mockRejectedValueOnce(firstError)
+                .mockResolvedValueOnce({
+                    id: 'chatcmpl-123',
+                    choices: [{ finish_reason: 'stop', message: { content: 'Hello' } }],
+                    usage: { prompt_tokens: 10, completion_tokens: 5 },
+                    model: 'gpt-4'
+                });
+
+            await handler({ body: { ...mockRequestBase, stream: false } }, mockReply);
+
+            expect(mockCreateChatCompletion).toHaveBeenCalledTimes(2);
+            expect(mockCreateChatCompletion.mock.calls[1][0].messages[0].reasoning_content).toBeUndefined();
+            expect(mockReply.send).toHaveBeenCalled();
+        });
+
+        it('should not retry for unrelated 400 errors', async () => {
+            const handler = handlersModule.createMessagesHandler(config);
+            const { convertRequestToOpenAI } = require('../src/converters/request');
+            convertRequestToOpenAI.mockReturnValueOnce({
+                model: 'gpt-4',
+                messages: [
+                    {
+                        role: 'assistant',
+                        content: 'previous answer',
+                        reasoning_content: 'hidden chain of thought'
+                    },
+                    { role: 'user', content: 'follow up' }
+                ]
+            });
+
+            const error: any = new Error('400 invalid format: messages[0].content too long');
+            error.status = 400;
+            mockCreateChatCompletion.mockRejectedValueOnce(error);
+
+            await handler({ body: { ...mockRequestBase, stream: false } }, mockReply);
+
+            expect(mockCreateChatCompletion).toHaveBeenCalledTimes(1);
+            expect(mockReply.code).toHaveBeenCalled();
+        });
     });
 });

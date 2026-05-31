@@ -273,7 +273,7 @@ function convertMessage(
             // Assistant message with content blocks
             // Note: We still use processAssistantContentBlocks for deduplication logic, 
             // even if we don't use the tool_calls output in XML mode (to keep state consistent)
-            const { textContent, toolCalls } = processAssistantContentBlocks(msg.content, ctx);
+            const { textContent, thinkingContent, thinkingSignature, toolCalls } = processAssistantContentBlocks(msg.content, ctx);
 
             // Skip assistant prefill messages when content is just a JSON starter
             if (toolCalls.length === 0 && textContent && isAssistantPrefill(textContent)) {
@@ -307,6 +307,12 @@ function convertMessage(
 
                 if (toolCalls.length > 0) {
                     (assistantMsg as any).tool_calls = toolCalls;
+                }
+                if (thinkingContent) {
+                    (assistantMsg as any).reasoning_content = thinkingContent;
+                }
+                if (thinkingSignature) {
+                    (assistantMsg as any).reasoning_signature = thinkingSignature;
                 }
 
                 result.push(assistantMsg);
@@ -380,14 +386,23 @@ function processAssistantContentBlocks(
     ctx: IdDeduplicationContext
 ): {
     textContent: string;
+    thinkingContent: string;
+    thinkingSignature?: string;
     toolCalls: Array<{ id: string; type: 'function'; function: { name: string; arguments: string } }>;
 } {
     let textContent = '';
+    let thinkingContent = '';
+    let thinkingSignature: string | undefined;
     const toolCalls: Array<{ id: string; type: 'function'; function: { name: string; arguments: string } }> = [];
 
     for (const block of blocks) {
         if (block.type === 'text') {
             textContent += block.text;
+        } else if (block.type === 'thinking') {
+            thinkingContent += block.thinking;
+            if (block.signature) {
+                thinkingSignature = block.signature;
+            }
         } else if (block.type === 'tool_use') {
             const toolUse = block as AnthropicToolUseBlock;
             let idToUse = toolUse.id;
@@ -432,5 +447,5 @@ function processAssistantContentBlocks(
         }
     }
 
-    return { textContent, toolCalls };
+    return { textContent, thinkingContent, thinkingSignature, toolCalls };
 }

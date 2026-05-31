@@ -55,6 +55,7 @@ interface StreamingState {
     hasStarted: boolean;
     textContent: string;
     textBlockOpen: boolean;
+    thinkingBlockOpen: boolean;
 }
 
 /**
@@ -79,6 +80,7 @@ export async function streamOpenAIToAnthropic(
         hasStarted: false,
         textContent: '',
         textBlockOpen: false,
+        thinkingBlockOpen: false,
     };
 
     // Access the underlying Node.js response for SSE streaming
@@ -132,6 +134,11 @@ function processChunk(
 
     // Handle text content
     if (delta.content) {
+        if (state.thinkingBlockOpen) {
+            sendContentBlockStop(state.contentBlockIndex, raw);
+            state.thinkingBlockOpen = false;
+            state.contentBlockIndex++;
+        }
         if (!state.textBlockOpen) {
             sendContentBlockStart(state.contentBlockIndex, 'text', '', raw);
             state.textBlockOpen = true;
@@ -139,6 +146,35 @@ function processChunk(
 
         state.textContent += delta.content;
         sendTextDelta(state.contentBlockIndex, delta.content, raw);
+    }
+
+    if (delta.reasoning_content) {
+        if (state.textBlockOpen) {
+            sendContentBlockStop(state.contentBlockIndex, raw);
+            state.textBlockOpen = false;
+            state.textContent = '';
+            state.contentBlockIndex++;
+        }
+        if (!state.thinkingBlockOpen) {
+            sendContentBlockStart(state.contentBlockIndex, 'thinking', '', raw);
+            state.thinkingBlockOpen = true;
+        }
+        sendThinkingDelta(state.contentBlockIndex, delta.reasoning_content, raw);
+    }
+
+    const reasoningSignature = delta.reasoning_signature ?? delta.signature;
+    if (reasoningSignature) {
+        if (state.textBlockOpen) {
+            sendContentBlockStop(state.contentBlockIndex, raw);
+            state.textBlockOpen = false;
+            state.textContent = '';
+            state.contentBlockIndex++;
+        }
+        if (!state.thinkingBlockOpen) {
+            sendContentBlockStart(state.contentBlockIndex, 'thinking', '', raw);
+            state.thinkingBlockOpen = true;
+        }
+        sendSignatureDelta(state.contentBlockIndex, reasoningSignature, raw);
     }
 
     // Handle tool calls
@@ -154,6 +190,11 @@ function processChunk(
             sendContentBlockStop(state.contentBlockIndex, raw);
             state.textBlockOpen = false;
             state.textContent = '';
+            state.contentBlockIndex++;
+        }
+        if (state.thinkingBlockOpen) {
+            sendContentBlockStop(state.contentBlockIndex, raw);
+            state.thinkingBlockOpen = false;
             state.contentBlockIndex++;
         }
 
@@ -172,6 +213,11 @@ function processToolCallDelta(
 
     // Check if this is a new tool call
     if (!state.currentToolCalls.has(index)) {
+        if (state.thinkingBlockOpen) {
+            sendContentBlockStop(state.contentBlockIndex, raw);
+            state.thinkingBlockOpen = false;
+            state.contentBlockIndex++;
+        }
         if (state.textBlockOpen) {
             sendContentBlockStop(state.contentBlockIndex, raw);
             state.textBlockOpen = false;
@@ -238,7 +284,7 @@ function sendMessageStart(state: StreamingState, raw: any): void {
 
 function sendContentBlockStart(
     index: number,
-    type: 'text' | 'tool_use',
+    type: 'text' | 'tool_use' | 'thinking',
     textOrName: string,
     raw: any,
     id?: string
@@ -247,13 +293,15 @@ function sendContentBlockStart(
 
     if (type === 'text') {
         contentBlock = { type: 'text', text: '' };
-    } else {
+    } else if (type === 'tool_use') {
         contentBlock = {
             type: 'tool_use',
             id: id || generateToolUseId(),
             name: textOrName,
             input: {},
         };
+    } else {
+        contentBlock = { type: 'thinking', thinking: '' };
     }
 
     const event = {
@@ -271,6 +319,30 @@ function sendTextDelta(index: number, text: string, raw: any): void {
         delta: {
             type: 'text_delta',
             text,
+        },
+    };
+    sendSSE(event, raw);
+}
+
+function sendThinkingDelta(index: number, thinking: string, raw: any): void {
+    const event = {
+        type: 'content_block_delta',
+        index,
+        delta: {
+            type: 'thinking_delta',
+            thinking,
+        },
+    };
+    sendSSE(event, raw);
+}
+
+function sendSignatureDelta(index: number, signature: string, raw: any): void {
+    const event = {
+        type: 'content_block_delta',
+        index,
+        delta: {
+            type: 'signature_delta',
+            signature,
         },
     };
     sendSSE(event, raw);
@@ -297,6 +369,18 @@ function sendContentBlockStop(index: number, raw: any): void {
 }
 
 function finishStream(state: StreamingState, raw: any): void {
+    if (state.textBlockOpen) {
+        sendContentBlockStop(state.contentBlockIndex, raw);
+        state.textBlockOpen = false;
+        state.textContent = '';
+        state.contentBlockIndex++;
+    }
+    if (state.thinkingBlockOpen) {
+        sendContentBlockStop(state.contentBlockIndex, raw);
+        state.thinkingBlockOpen = false;
+        state.contentBlockIndex++;
+    }
+
     // Determine stop reason
     const hasToolCalls = state.currentToolCalls.size > 0;
     const stopReason = hasToolCalls ? 'tool_use' : 'end_turn';
